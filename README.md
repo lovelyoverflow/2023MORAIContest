@@ -19,8 +19,10 @@ $ catkin_make
 ```
 
 ### Test
+```
 $ source ./devel/setup.zsh
 or
 $ source ./devel/setup.bash
 
 $ rosrun main image_parser.py
+```
