@@ -26,3 +26,6 @@ $ source ./devel/setup.bash
 
 $ rosrun main image_parser.py
 ```
+
+### 빌드 오류 시
+devel 폴더를 지우고 재빌드
