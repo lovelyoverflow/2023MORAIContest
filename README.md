@@ -3,6 +3,7 @@
 ### Requirements
 ```
 $ sudo apt install ros-noetic-rosbridge-server
+$ sudo apt install ros-noetic-ackermann-msgs
 $ sudo apt install ros-noetic-velodyne
 $ sudo apt install ros-noetic-serial
 ```
