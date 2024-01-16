@@ -1,0 +1,13 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_Camera" 
+        args="0.28 0.0 0.10 0.0 0.0 0.0 1.0 /base_link /Camera" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser" 
+        args="0.115 0.0 0.12 0.0 0.0 0.0 1.0 /base_link /velodyne" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_gps" 
+        args="0.0 0.0 0.12 0.0 0.0 0.0 1.0 /base_link /gps" />
+
+</launch>
