@@ -1,0 +1,14 @@
+<launch>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu"
+    args="0.0 0.0 0.12 0.0 0.0 0.0 1.0 base_link imu"/>
+
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_lidar"
+    args="0.11 0.0 0.13 0.0 0.0 0.0 1.0 base_link lidar"/>
+
+    <node pkg="wego" type="lidar_convert" name="lidar_convert"/>
+
+    <include file="$(find racecar)/launch/teleop.launch"/>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/display.rviz" />
+
+</launch>

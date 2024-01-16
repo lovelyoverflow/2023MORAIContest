@@ -1,0 +1,25 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/hoonbuntu/develop/ros_project/2023MORAIContest/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/hoonbuntu/develop/ros_project/2023MORAIContest/src/racecar/ackermann_cmd_mux/include/**",
+        "/home/hoonbuntu/develop/ros_project/2023MORAIContest/src/vesc/vesc_driver/include/**",
+        "/home/hoonbuntu/develop/ros_project/2023MORAIContest/src/vesc/vesc_hw_interface/include/**",
+        "/home/hoonbuntu/develop/ros_project/2023MORAIContest/src/wego/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
