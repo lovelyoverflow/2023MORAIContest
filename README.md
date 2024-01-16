@@ -10,7 +10,7 @@ $ sudo apt install ros-noetic-serial
 
 ### Installation
 ```
-$ git clone --recurse-submodules git@github.com:lovelyoverflow/2023MORAIContest.git
+$ git clone git@github.com:lovelyoverflow/2023MORAIContest.git
 $ catkin_make
 ```
 
