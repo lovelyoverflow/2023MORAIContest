@@ -14,6 +14,7 @@ $ rosdep install robot_localization
 ### Installation
 ```
 $ git clone git@github.com:lovelyoverflow/2023MORAIContest.git
+$ cd ./2023MORAIContest
 $ catkin_make
 ```
 
