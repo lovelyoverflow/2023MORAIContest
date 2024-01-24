@@ -7,6 +7,7 @@ $ sudo apt install ros-noetic-ackermann-msgs
 $ sudo apt install ros-noetic-velodyne
 $ sudo apt install ros-noetic-serial
 $ sudo apt install ros-noetic-geographic-msgs
+$ sudo apt install ros-noetic-map-server
 
 $ rosdep install robot_localization
 ```
