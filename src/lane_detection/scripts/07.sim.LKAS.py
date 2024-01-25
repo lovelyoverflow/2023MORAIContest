@@ -11,11 +11,7 @@ from sim_kbd import Sim_kbd
 from math import isnan
 
 # does this even work
-nwindows = 9
-margin = 48
-minpix = 5
 
-lane_bin_th = 145
 
 class Cam_sub():
     def __init__(self) -> None:
@@ -27,15 +23,20 @@ class Cam_sub():
         self.cam.wait_time = 1
         turn = 0.2
         self.kbd = Sim_kbd(motor_spdw = 1500, servo_l = 0.5-turn, servo_r = 0.5+turn)
+        
+        self.nwindows = 9
+        self.margin = 60
+        self.minpix = 5
     
     def subscribe(self):
-        rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb)
+        rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size = 1)
     
     def warp_process_image(self, img): # does this even work
-        global nwindows
-        global margin
-        global minpix
-        global lane_bin_th
+        
+        
+        nwindows = self.nwindows
+        margin = self.margin
+        minpix = self.minpix
 
         lane = img
 
@@ -45,7 +46,7 @@ class Cam_sub():
         rightx_current = np.argmax(histogram[midpoint:]) + midpoint
 
         window_height = np.int(lane.shape[0]/nwindows)
-        nz = lane.nonzero()
+        nz = lane.nonzero() # nz[0] is vertical(y), nz[1] is horizontal(x)
 
         left_lane_inds = []
         right_lane_inds = []
@@ -87,18 +88,12 @@ class Cam_sub():
         left_lane_inds = np.concatenate(left_lane_inds)
         right_lane_inds = np.concatenate(right_lane_inds)
 
-        #left_fit = np.polyfit(nz[0][left_lane_inds], nz[1][left_lane_inds], 2)
-        #right_fit = np.polyfit(nz[0][right_lane_inds] , nz[1][right_lane_inds], 2)
-        
-        lfit = np.polyfit(np.array(ly),np.array(lx),2)
-        rfit = np.polyfit(np.array(ry),np.array(rx),2)
-
         out_img[nz[0][left_lane_inds], nz[1][left_lane_inds]] = [255, 0, 0]
         out_img[nz[0][right_lane_inds] , nz[1][right_lane_inds]] = [0, 0, 255]
         cv2.imshow("viewer", out_img)
         
         #return left_fit, right_fit
-        return lfit, rfit
+        return (lx, ly), (rx, ry)
 
 
     def _img_cb(self, msg):
@@ -127,69 +122,30 @@ class Cam_sub():
         topy = 271
         bottomy = y
         src_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
-        print(src_points)
+        # print(src_points)
         topx = x//6
         bottomx = x//6
         topy = 0
         bottomy = x
         dst_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
-        print(dst_points)
+        # print(dst_points)
         matrix = cv2.getPerspectiveTransform(src_points, dst_points)
-        print(matrix)
+        # print(matrix)
         warped_img = cv2.warpPerspective(combined_range, matrix, [x, x])
 
         # WTF is this
-        self.warp_process_image(warped_img)
-
-        bin_img = np.zeros_like(warped_img)
-        bin_img[warped_img>10] = 1
-
-        lane = np.sum(bin_img, axis=0)
-
-        posl = 0
-        for i, p_cur in enumerate(lane[:x//2]):
-            posl += (i*p_cur)
-        posl /= np.sum(lane[:x//2])
-        posr = 0
-        for i, p_cur in enumerate(lane[x//2:]):
-            posr += (i*p_cur)
-        posr /= np.sum(lane[x//2:])
-
-        if isnan(posl): posl = posr
-        if not isnan(posl):posl = int(posl)
-        if isnan(posr): posr = posl
-        if not isnan(posr): posr = int(posr) + x//2
+        posl, posr = self.warp_process_image(warped_img)
         
+        posl = int(posl[0][2])
+        posr = int(posr[0][2])
         
-        
-        cv2.line(warped_img, [posl, x-1], [posl, x-1], 255, 5)
-        cv2.line(warped_img, [posr, x-1], [posr, x-1], 255, 5)
+        cv2.line(warped_img, [posl, 0], [posl, x-1], 255, 5)
+        cv2.line(warped_img, [posr, 0], [posr, x-1], 255, 5)
 
-        cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
-        cv2.imshow("Image", cv_img)
-        cv2.namedWindow("filtered range", cv2.WINDOW_NORMAL)
-        cv2.imshow("filtered range", filtered_image)
         cv2.namedWindow("warped", cv2.WINDOW_NORMAL)
         cv2.imshow("warped", warped_img)
-        # cv2.namedWindow("warpedb", cv2.WINDOW_NORMAL)
-        # cv2.imshow("warpedb", bin_img)
-        # self.cam._cv2_wait("Image")
 
-        cv2.namedWindow("h", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("s", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("v", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("yellow range", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("white range", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("combined range", cv2.WINDOW_NORMAL)
-        cv2.imshow("h", h)
-        cv2.imshow("s", s)
-        cv2.imshow("v", v)
-
-        cv2.imshow("yellow range", yellow_range)
-        cv2.imshow("white range", white_range)
-        cv2.imshow("combined range", combined_range)
-
-        self.cam._cv2_wait(("Image", "h", "s", "v"))
+        self.cam._cv2_wait(())
 
         # start of ctrl stuff
         midrange = 300
