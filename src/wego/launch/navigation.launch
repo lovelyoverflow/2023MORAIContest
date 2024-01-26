@@ -3,6 +3,7 @@
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
 
     <include file="$(find wego_2d_nav)/launch/amcl.launch"/>
+    <include file="$(find wego_2d_nav)/launch/move_base.launch"/>
 
     <node name="rviz_nav" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/navigation.rviz" />
 </launch>
