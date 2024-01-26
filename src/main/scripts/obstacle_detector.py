@@ -52,7 +52,7 @@ class LidarReceiver():
 
 
 def run():
-    rospy.init_node("lidar_example")
+    rospy.init_node("lidar_obstacle_detector")
     new_class = LidarReceiver()
     rospy.spin()
 
