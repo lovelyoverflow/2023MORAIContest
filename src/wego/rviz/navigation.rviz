@@ -8,6 +8,8 @@ Panels:
         - /Status1
         - /LaserScan1
         - /TF1
+        - /Map2
+        - /Map3
       Splitter Ratio: 0.5
     Tree Height: 1836
   - Class: rviz/Selection
@@ -141,6 +143,26 @@ Visualization Manager:
                 {}
       Update Interval: 0
       Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /move_base/global_costmap/costmap
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /move_base/local_costmap/costmap
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -169,7 +191,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 67.142822265625
+      Distance: 68.23870849609375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -177,9 +199,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 2.010150671005249
+        Y: 6.499153137207031
+        Z: -0.4070427417755127
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -205,5 +227,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 3828
-  X: 1920
-  Y: 0
+  X: 1888
+  Y: -32
