@@ -55,7 +55,9 @@ qtcreator-*
 CATKIN_IGNORE
 
 # rosbag 
-/home/foscar/gasolin/2023MORAIContest/src/obstacle_detector/resources/*.bag
+src/obstacle_detector/resources/*.bag
+src/obstacle_detector/resources/*.bag.active
+
 .git
 
 # End of https://www.toptal.com/developers/gitignore/api/ros
