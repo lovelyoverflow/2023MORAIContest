@@ -1,0 +1,6 @@
+<launch>
+    <arg name="map_file" default="$(find wego)/maps/map.yaml"/>
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
+
+    <include file="$(find wego_2d_nav)/launch/amcl.launch"/>
+</launch>

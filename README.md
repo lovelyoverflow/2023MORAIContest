@@ -8,6 +8,8 @@ $ sudo apt install ros-noetic-velodyne
 $ sudo apt install ros-noetic-serial
 $ sudo apt install ros-noetic-geographic-msgs
 $ sudo apt install ros-noetic-map-server
+$ sudo apt install ros-noetic-tf2-sensor-msgs
+$ sudo apt install ros-noetic-move-base-msgs
 
 $ rosdep install robot_localization
 ```
