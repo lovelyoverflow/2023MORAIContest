@@ -17,6 +17,6 @@
         <node pkg="wego" type="pub_odom.py" name="pub_odom"/>
     </group>
 
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/display.rviz" />
+    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/display.rviz" /> -->
 
 </launch>
