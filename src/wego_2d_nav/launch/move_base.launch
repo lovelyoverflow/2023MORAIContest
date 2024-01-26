@@ -19,4 +19,5 @@
         <param name="clearing_rotation_allowed" value="false"/>
         <remap from="odom" to="/odometry/filtered"/>
     </node>
+    <node pkg="wego_2d_nav" type="cmd_vel_to_ackermann.py" name="cmd_vel_to_ackermann.py"/>
 </launch>
