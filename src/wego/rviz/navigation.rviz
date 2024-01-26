@@ -10,6 +10,7 @@ Panels:
         - /TF1
         - /Map2
         - /Map3
+        - /Polygon1
       Splitter Ratio: 0.5
     Tree Height: 1836
   - Class: rviz/Selection
@@ -163,6 +164,15 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Queue Size: 10
+      Topic: /move_base/local_costmap/footprint
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -191,7 +201,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 68.23870849609375
+      Distance: 55.42150115966797
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -199,9 +209,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.010150671005249
-        Y: 6.499153137207031
-        Z: -0.4070427417755127
+        X: -0.17794714868068695
+        Y: 0.4620181918144226
+        Z: -0.020577410236001015
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
