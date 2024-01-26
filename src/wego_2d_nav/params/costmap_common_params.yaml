@@ -1,0 +1,14 @@
+footprint: [[x0, y0], [x1, y1], ... [xn, yn]]
+footprint_padding: 0.02
+
+transform_tolerance: 0.2
+map_type: costmap
+
+inflation_layer:
+  enabled: true
+  cost_scaling_factor: 10.0
+  inflation_radius: 0.4
+  inflation_unknow: true
+static_layer:
+  enabled: true
+  map_topic: "/map" 
