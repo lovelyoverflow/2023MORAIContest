@@ -22,11 +22,12 @@ class Cam_sub():
         self.cam.ros = 1
         self.cam.wait_time = 1
         turn = 0.2
-        self.kbd = Sim_kbd(motor_spdw = 1500, servo_l = 0.5-turn, servo_r = 0.5+turn)
-        
+        self.kbd = Sim_kbd(motor_spdw = 1000, servo_l = 0.5-turn, servo_r = 0.5+turn)
         self.nwindows = 9
         self.margin = 60
         self.minpix = 5
+        self.lmode = False
+        self.trustr = True
     
     def subscribe(self):
         rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size = 1)
@@ -40,7 +41,7 @@ class Cam_sub():
 
         lane = img
 
-        histogram = np.sum(lane[lane.shape[0]//2:,:], axis=0)      
+        histogram = np.sum(lane, axis=0)      
         midpoint = np.int(histogram.shape[0]/2)
         leftx_current = np.argmax(histogram[:midpoint])
         rightx_current = np.argmax(histogram[midpoint:]) + midpoint
@@ -54,6 +55,10 @@ class Cam_sub():
         lx, ly, rx, ry = [], [], [], []
 
         out_img = np.dstack((lane, lane, lane))*255
+
+        l_err = [0,0]
+        r_err = [0,0]
+        foundr, foundl = (False, False)
 
         for window in range(nwindows):
 
@@ -74,10 +79,24 @@ class Cam_sub():
             left_lane_inds.append(good_left_inds)
             right_lane_inds.append(good_right_inds)
 
+            threshold = 100
+
             if len(good_left_inds) > minpix:
+                if leftx_current > threshold and leftx_current < histogram.shape[0]-threshold:
+                    l_err[1] = 0
+                    foundl = True 
+                else: l_err[1] += 1 
                 leftx_current = np.int(np.mean(nz[1][good_left_inds]))
-            if len(good_right_inds) > minpix:        
+            else: l_err[1] += 1
+            if not foundl: l_err[0] += 1
+            if len(good_right_inds) > minpix:
+                if rightx_current > threshold and rightx_current < histogram.shape[0]-threshold:
+                    r_err[1] = 0
+                    foundr = True
+                else: r_err[1] += 1
                 rightx_current = np.int(np.mean(nz[1][good_right_inds]))
+            else: r_err[1] += 1
+            if not foundr: r_err[0] += 1
 
             lx.append(leftx_current)
             ly.append((win_yl + win_yh)/2)
@@ -93,7 +112,7 @@ class Cam_sub():
         cv2.imshow("viewer", out_img)
         
         #return left_fit, right_fit
-        return (lx, ly), (rx, ry)
+        return (lx, ly), (rx, ry), (l_err, r_err)
 
 
     def _img_cb(self, msg):
@@ -123,9 +142,9 @@ class Cam_sub():
         bottomy = y
         src_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
         # print(src_points)
-        topx = x//6
-        bottomx = x//6
-        topy = 0
+        topx = x//4
+        bottomx = x//4
+        topy = x//4
         bottomy = x
         dst_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
         # print(dst_points)
@@ -134,10 +153,29 @@ class Cam_sub():
         warped_img = cv2.warpPerspective(combined_range, matrix, [x, x])
 
         # WTF is this
-        posl, posr = self.warp_process_image(warped_img)
+        posl, posr , (posl_fail, posr_fail) = self.warp_process_image(warped_img)
         
         posl = int(posl[0][2])
         posr = int(posr[0][2])
+        print(posl-posr)
+        line_len = 286
+        fail_threshold = 3
+        print(posl_fail)
+        if self.lmode:
+            self.kbd.motor_spdw = 400
+            posl -= 60
+            posr = posl + line_len
+            print("LMODE")
+        else: 
+            self.kbd.motor_spdw = 1000
+        if max(posl_fail) >= fail_threshold: posl = posr - line_len 
+
+        if not self.trustr:
+            if max(posr_fail) >= fail_threshold: posr = posl + line_len
+
+            if posl == posr:
+                posl = x//2
+        
         
         cv2.line(warped_img, [posl, 0], [posl, x-1], 255, 5)
         cv2.line(warped_img, [posr, 0], [posr, x-1], 255, 5)
@@ -146,9 +184,11 @@ class Cam_sub():
         cv2.imshow("warped", warped_img)
 
         self.cam._cv2_wait(())
+        if self.cam.keycode == "l":
+            self.lmode = not self.lmode
 
         # start of ctrl stuff
-        midrange = 300
+        midrange = 170
         midstart = x//2-midrange
         midend = x//2+midrange
         mid = x//2
