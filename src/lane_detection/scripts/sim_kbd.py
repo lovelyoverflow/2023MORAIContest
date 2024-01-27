@@ -50,7 +50,7 @@ class Sim_kbd():
         self.pub_steer.publish(self.cmd_msg.data)
         self.cmd_msg.data = self.motor_spdw
         self.pub.publish(self.cmd_msg.data)
-        print(val)
+        # print(val)
 
 
 def main():
