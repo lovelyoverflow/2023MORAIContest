@@ -17,7 +17,7 @@ class Sim_kbd():
         self.servo_r = servo_r
         self.servo_l = servo_l
         self.servo_c = servo_c
-        self.rate = rospy.Rate(20)
+        self.rate = rospy.Rate(30)
     
     def ctrl_keyb(self, c):
         # c = self.poll()
@@ -43,12 +43,12 @@ class Sim_kbd():
 
                 self.cmd_msg.data = self.servo_c
                 self.pub_steer.publish(self.cmd_msg.data)
-            print(c)
+            # print(c)
 
     def steer(self, val):
-        self.cmd_msg.data = val
+        self.cmd_msg.data = val #조향각 설정
         self.pub_steer.publish(self.cmd_msg.data)
-        self.cmd_msg.data = self.motor_spdw
+        self.cmd_msg.data = self.motor_spdw 
         self.pub.publish(self.cmd_msg.data)
         # print(val)
 
