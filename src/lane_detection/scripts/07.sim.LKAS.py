@@ -16,25 +16,119 @@ from math import isnan
 class Cam_sub():
     def __init__(self) -> None:
         rospy.init_node("sim_lkas_node")
-        self.image_msg = CompressedImage()
+        
+        self.cv_img = []
+        self.out_img = []
         self.bridge = CvBridge()
         self.cam = CamShower.Camtest()
         self.cam.ros = 1
         self.cam.wait_time = 1
         turn = 0.2
         self.kbd = Sim_kbd(motor_spdw = 1000, servo_l = 0.5-turn, servo_r = 0.5+turn)
-        self.nwindows = 9
+        self.nwindows = 12
         self.margin = 60
         self.minpix = 5
         self.lmode = False
         self.trustr = True
-    
-    def subscribe(self):
+        
         rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size = 1)
-    
+        
+        rate = rospy.Rate(30)
+        
+        while not rospy.is_shutdown():
+            if len(self.cv_img) != 0:
+                
+                y, x, _ = self.cv_img.shape
+                img_hsv = cv2.cvtColor(self.cv_img, cv2.COLOR_BGR2HSV)
+                h, s, v = cv2.split(img_hsv)
+
+                # seperate lanes
+                lower = np.array([15, 100, 140])
+                upper = np.array([30, 200, 255])
+                yellow_range = cv2.inRange(img_hsv, lower, upper)
+
+                lowerwhite = np.array([0, 0, 140])
+                upperwhite = np.array([50, 70, 255])
+                white_range = cv2.inRange(img_hsv, lowerwhite, upperwhite)
+
+                combined_range = cv2.bitwise_or(yellow_range, white_range)
+                filtered_image = cv2.bitwise_and(self.cv_img, self.cv_img, mask = combined_range)
+
+                # Warp img to ROI(warped img)
+                topx = 269
+                bottomx = -25
+                topy = 271
+                bottomy = y
+                src_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
+                # print(src_points)
+                topx = x//4
+                bottomx = x//4
+                topy = x//4
+                bottomy = x
+                dst_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
+                # print(dst_points)
+                matrix = cv2.getPerspectiveTransform(src_points, dst_points)
+                # print(matrix)
+                warped_img = cv2.warpPerspective(combined_range, matrix, [x, x])
+
+                # WTF is this
+                posl, posr , (posl_fail, posr_fail) = self.warp_process_image(warped_img)
+                
+                posl = int(posl[0][2])
+                posr = int(posr[0][2])
+                # print(posl-posr)
+                line_len = 286
+                fail_threshold = 3
+                # print(posl_fail)
+                if self.lmode:
+                    self.kbd.motor_spdw = 400
+                    posl -= 60
+                    posr = posl + line_len
+                    # print("LMODE")
+                else: 
+                    self.kbd.motor_spdw = 1000
+                if max(posl_fail) >= fail_threshold: posl = posr - line_len 
+
+                if not self.trustr:
+                    if max(posr_fail) >= fail_threshold: posr = posl + line_len
+
+                    if posl == posr:
+                        posl = x//2
+                
+                
+                # cv2.line(warped_img, [posl, 0], [posl, x-1], 255, 5)
+                # cv2.line(warped_img, [posr, 0], [posr, x-1], 255, 5)
+
+                # cv2.namedWindow("warped", cv2.WINDOW_NORMAL)
+                # 
+                # cv2.imshow("warped", warped_img)
+                # cv2.waitKey(1)
+                cv2.imshow("sliding", self.out_img)
+                # cv2.imshow("default", self.cv_img)
+                cv2.waitKey(1)
+                # self.cam._cv2_wait(())
+                # if self.cam.keycode == "l":
+                #     self.lmode = not self.lmode
+
+                # start of ctrl stuff 조향각(0~1) 코드 - 차선 변환 0~480
+                midrange =170 #170 defualt
+                midstart = x//2-midrange
+                midend = x//2+midrange
+                mid = x//2
+                pos = (posl + posr) // 2
+                if not isnan(posr):
+                    ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
+                else: ctrl = 0.5 # ctrl = self.cam.keycode
+                self.kbd.steer(ctrl)
+                
+            else:
+                print("Camera is not working")
+                
+            rate.sleep()
+                
+            
     def warp_process_image(self, img): # does this even work
-        
-        
+
         nwindows = self.nwindows
         margin = self.margin
         minpix = self.minpix
@@ -54,7 +148,7 @@ class Cam_sub():
         
         lx, ly, rx, ry = [], [], [], []
 
-        out_img = np.dstack((lane, lane, lane))*255
+        self.out_img = np.dstack((lane, lane, lane))*255
 
         l_err = [0,0]
         r_err = [0,0]
@@ -70,8 +164,8 @@ class Cam_sub():
             win_xrl = rightx_current - margin
             win_xrh = rightx_current + margin
 
-            cv2.rectangle(out_img,(win_xll,win_yl),(win_xlh,win_yh),(0,255,0), 2) 
-            cv2.rectangle(out_img,(win_xrl,win_yl),(win_xrh,win_yh),(0,255,0), 2) 
+            cv2.rectangle(self.out_img,(win_xll,win_yl),(win_xlh,win_yh),(0,255,0), 2) 
+            cv2.rectangle(self.out_img,(win_xrl,win_yl),(win_xrh,win_yh),(0,255,0), 2) 
 
             good_left_inds = ((nz[0] >= win_yl)&(nz[0] < win_yh)&(nz[1] >= win_xll)&(nz[1] < win_xlh)).nonzero()[0]
             good_right_inds = ((nz[0] >= win_yl)&(nz[0] < win_yh)&(nz[1] >= win_xrl)&(nz[1] < win_xrh)).nonzero()[0]
@@ -107,107 +201,21 @@ class Cam_sub():
         left_lane_inds = np.concatenate(left_lane_inds)
         right_lane_inds = np.concatenate(right_lane_inds)
 
-        out_img[nz[0][left_lane_inds], nz[1][left_lane_inds]] = [255, 0, 0]
-        out_img[nz[0][right_lane_inds] , nz[1][right_lane_inds]] = [0, 0, 255]
-        cv2.imshow("viewer", out_img)
-        
+        self.out_img[nz[0][left_lane_inds], nz[1][left_lane_inds]] = [255, 0, 0]
+        self.out_img[nz[0][right_lane_inds] , nz[1][right_lane_inds]] = [0, 0, 255]
+        # cv2.imshow("viewer", out_img)
+        # cv2.waitKey(1)
         #return left_fit, right_fit
         return (lx, ly), (rx, ry), (l_err, r_err)
 
 
     def _img_cb(self, msg):
-        self.image_msg = msg
-        cv_img = self.bridge.compressed_imgmsg_to_cv2(self.image_msg)
-        
-        y, x, _ = cv_img.shape
-        img_hsv = cv2.cvtColor(cv_img, cv2.COLOR_BGR2HSV)
-        h, s, v = cv2.split(img_hsv)
+        # self.image_msg = msg
+        self.cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)        
 
-        # seperate lanes
-        lower = np.array([15, 100, 140])
-        upper = np.array([30, 200, 255])
-        yellow_range = cv2.inRange(img_hsv, lower, upper)
-
-        lowerwhite = np.array([0, 0, 140])
-        upperwhite = np.array([50, 70, 255])
-        white_range = cv2.inRange(img_hsv, lowerwhite, upperwhite)
-
-        combined_range = cv2.bitwise_or(yellow_range, white_range)
-        filtered_image = cv2.bitwise_and(cv_img, cv_img, mask = combined_range)
-
-        # Warp img to ROI(warped img)
-        topx = 269
-        bottomx = -25
-        topy = 271
-        bottomy = y
-        src_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
-        # print(src_points)
-        topx = x//4
-        bottomx = x//4
-        topy = x//4
-        bottomy = x
-        dst_points = np.float32([[bottomx, bottomy], [topx, topy], [x - topx, topy], [x-bottomx, bottomy]])
-        # print(dst_points)
-        matrix = cv2.getPerspectiveTransform(src_points, dst_points)
-        # print(matrix)
-        warped_img = cv2.warpPerspective(combined_range, matrix, [x, x])
-
-        # WTF is this
-        posl, posr , (posl_fail, posr_fail) = self.warp_process_image(warped_img)
-        
-        posl = int(posl[0][2])
-        posr = int(posr[0][2])
-        print(posl-posr)
-        line_len = 286
-        fail_threshold = 3
-        print(posl_fail)
-        if self.lmode:
-            self.kbd.motor_spdw = 400
-            posl -= 60
-            posr = posl + line_len
-            print("LMODE")
-        else: 
-            self.kbd.motor_spdw = 1000
-        if max(posl_fail) >= fail_threshold: posl = posr - line_len 
-
-        if not self.trustr:
-            if max(posr_fail) >= fail_threshold: posr = posl + line_len
-
-            if posl == posr:
-                posl = x//2
-        
-        
-        cv2.line(warped_img, [posl, 0], [posl, x-1], 255, 5)
-        cv2.line(warped_img, [posr, 0], [posr, x-1], 255, 5)
-
-        cv2.namedWindow("warped", cv2.WINDOW_NORMAL)
-        cv2.imshow("warped", warped_img)
-
-        self.cam._cv2_wait(())
-        if self.cam.keycode == "l":
-            self.lmode = not self.lmode
-
-        # start of ctrl stuff
-        midrange = 170
-        midstart = x//2-midrange
-        midend = x//2+midrange
-        mid = x//2
-        pos = (posl + posr) // 2
-        if not isnan(posr):
-            ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
-        else: ctrl = 0.5 # ctrl = self.cam.keycode
-        self.kbd.steer(ctrl)
-
-        
-
-        
-def main():
-    try:
-        s = Cam_sub()
-        s.subscribe()
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
 
 if __name__ == "__main__":
-    main()
+    try:
+        s = Cam_sub()
+    except rospy.ROSInterruptException:
+        pass
