@@ -11,7 +11,7 @@ global_costmap:
     enabled: true
     obstacle_range: 5.5
     raytrace_range: 6.0
-    inflation_radius: 0.3
+    inflation_radius: 0.2
     track_unknown_space: true
     combination_method: 1
     observation_sources: laser_scan_sensor
