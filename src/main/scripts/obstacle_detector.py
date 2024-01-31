@@ -52,9 +52,12 @@ class LidarReceiver():
 
 
 def run():
-    rospy.init_node("lidar_obstacle_detector")
-    new_class = LidarReceiver()
-    rospy.spin()
+    try:
+        rospy.init_node("lidar_obstacle_detector")
+        new_class = LidarReceiver()
+    except rospy.ROSInterruptException:
+        pass
+
 
 
 if __name__ == '__main__':
