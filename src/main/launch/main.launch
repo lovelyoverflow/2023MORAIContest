@@ -1,0 +1,12 @@
+<launch>
+    <node name="main_run" type="main_run.py" pkg="main" output="screen"/>
+    <!-- <node name="child_sign" type="child_sign.py" pkg="main" output="screen"/> -->
+    <!-- <node name="rubber_cone" type="rubber_cone.py" pkg="main" output="screen"/> -->
+    <node name="obstacle_detectors" type="obstacle_detectors.py" pkg="main" output="screen"/>
+    
+    <!-- <include file="$(find vesc_driver)/launch/vesc_driver_node.launch"/>
+    <include file="$(find usb_cam)/launch/webot_usb_cam-test.launch"/>
+    <include file="$(find aruco_detect)/launch/aruco_detect.launch" /> -->
+    <include file="$(find obstacle_detector)/launch/demo.launch"/>
+      
+</launch>

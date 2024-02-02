@@ -2,7 +2,7 @@
 <launch>
 
   <param name="use_sim_time" value="true"/>  
-  <node name="scans_demo" pkg="rosbag" type="play" output="screen" args="--clock --loop $(find obstacle_detector)/resources/front_lidar3.bag"/>
+  <node name="scans_demo" pkg="rosbag" type="play" output="screen" args="--clock --loop $(find obstacle_detector)/resources/output2.bag"/>
 
   <node name="map_to_scanner_base" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 map laser_frame"/>
   <node name="scanner_base_to_front_scanner" pkg="tf2_ros" type="static_transform_publisher" args="0.23565 -0.0005 0.06795 0 0 0 laser_frame front_scanner"/>
@@ -18,7 +18,7 @@
     <param name="publish_pcl"       value="false"/>
 
     <param name="ranges_num"        value="1000"/>
-
+ 
     <param name="min_scanner_range" value="0.05"/>
     <param name="max_scanner_range" value="10.0"/>
 
@@ -71,7 +71,7 @@
   </node>
 
   <node name="obstacle_publisher" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstaclePublisher nodelet_manager">
-    <param name="active"           value="false"/>
+    <param name="active"           value="True"/>
     <param name="reset"            value="false"/>
 
     <param name="fusion_example"   value="false"/>
