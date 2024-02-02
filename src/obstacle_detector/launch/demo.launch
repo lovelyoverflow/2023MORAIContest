@@ -2,7 +2,7 @@
 <launch>
 
   <param name="use_sim_time" value="true"/>  
-  <node name="scans_demo" pkg="rosbag" type="play" output="screen" args="--clock --loop $(find obstacle_detector)/resources/front_lidar3.bag"/>
+  <node name="scans_demo" pkg="rosbag" type="play" output="screen" args="--clock --loop $(find obstacle_detector)/resources/output2.bag"/>
 
   <node name="map_to_scanner_base" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 map laser_frame"/>
   <node name="scanner_base_to_front_scanner" pkg="tf2_ros" type="static_transform_publisher" args="0.23565 -0.0005 0.06795 0 0 0 laser_frame front_scanner"/>
@@ -23,9 +23,9 @@
     <param name="max_scanner_range" value="10.0"/>
 
     <param name="min_x_range"       value="-10.0"/>
-    <param name="max_x_range"       value="10.0"/>
+    <param name="max_x_range"       value="1000.0"/>
     <param name="min_y_range"       value="-10.0"/>
-    <param name="max_y_range"       value="10.0"/>
+    <param name="max_y_range"       value="1000.0"/>
 
     <param name="fixed_frame_id"    value="map"/>
     <param name="target_frame_id"   value="laser_frame"/>
