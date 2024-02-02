@@ -31,7 +31,9 @@ class MainLoop:
         self.current_lane = "LEFT"
         self.is_safe = True
         self.initialized = False
-
+        
+        self.color_img = None
+        
         self.lane_msg = Float64() # currentLane create
         self.speed_msg = Float64() # speed msg create
         self.angle_msg = Float64() # angle msg create
@@ -145,10 +147,11 @@ class MainLoop:
 
         # cv2.imshow("Lane Image", lane_image)
         # self.laneDetection(lane_image)
-        self.track_bar(cv2_image)
+        #self.track_bar(cv2_image)
+        self.color_img = cv2_image
         # cv2.waitKey(1)
     
-    def track_bar(self, cv2_image):
+    def track_bar(self):
         if self.initialized == False:
             cv2.namedWindow("Simulator_Image", cv2.WINDOW_NORMAL) 
             cv2.createTrackbar('low_H', 'Simulator_Image', 0, 360, nothing)
@@ -160,7 +163,7 @@ class MainLoop:
             self.initialized = True
         
         # cv2_image = self.bridge.compressed_imgmsg_to_cv2(_data)
-        self.originalImg = cv2_image.copy()
+        self.originalImg = self.color_img.copy()
         
         # if self.evalutator.evaluate(self.originalImg) == True:
         #     self.isDynamicMission = True
@@ -177,12 +180,12 @@ class MainLoop:
         high_S = cv2.getTrackbarPos('high_S', 'Simulator_Image')
         high_V = cv2.getTrackbarPos('high_V', 'Simulator_Image')
 
-        cv2.cvtColor(cv2_image, cv2.COLOR_BGR2HSV) # BGR to HSV
+        cv2.cvtColor(self.color_img, cv2.COLOR_BGR2HSV) # BGR to HSV
 
         lower_lane = np.array([low_H, low_S, low_V]) # 
         upper_lane = np.array([high_H, high_S, high_V])
 
-        lane_image = cv2.inRange(cv2_image, lower_lane, upper_lane)
+        lane_image = cv2.inRange(self.color_img, lower_lane, upper_lane)
 
         # cv2.imshow("Lane Image", lane_image)
         self.laneDetection(lane_image)
