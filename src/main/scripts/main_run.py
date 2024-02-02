@@ -89,14 +89,13 @@ class MainLoop:
         rospy.Subscriber("lidar_warning", String, self.warning_callback) # lidar 에서 받아온 object 탐지 subscribe (warning / safe)
         rospy.Subscriber("/object_condition", Float32, self.object_callback)
 
-        rate = rospy.Rate(30)
+        self.rate = rospy.Rate(30)
         
         self.initDrive_t1 = rospy.get_time()
 
         while not rospy.is_shutdown():
             self.mainAlgorithm()
-            
-            rate.sleep()
+            self.rate.sleep()
             
     # def timerCallback(self, _event):
     #     try:
@@ -107,17 +106,60 @@ class MainLoop:
     
     def laneCallback(self, _data):
         # detect lane
+        cv2_image = self.bridge.compressed_imgmsg_to_cv2(_data)
+        
+        # if self.initialized == False:
+        #     cv2.namedWindow("Simulator_Image", cv2.WINDOW_NORMAL) 
+        #     cv2.createTrackbar('low_H', 'Simulator_Image', 128, 360, nothing)
+        #     cv2.createTrackbar('low_L', 'Simulator_Image', 134, 255, nothing)
+        #     cv2.createTrackbar('low_S', 'Simulator_Image', 87, 255, nothing)
+        #     cv2.createTrackbar('high_H', 'Simulator_Image', 334, 360, nothing)
+        #     cv2.createTrackbar('high_L', 'Simulator_Image', 255, 255, nothing)
+        #     cv2.createTrackbar('high_S', 'Simulator_Image', 251, 255, nothing)
+        #     self.initialized = True
+        
+        # # cv2_image = self.bridge.compressed_imgmsg_to_cv2(_data)
+        # self.originalImg = cv2_image.copy()
+        
+        # # if self.evalutator.evaluate(self.originalImg) == True:
+        # #     self.isDynamicMission = True
+        # # else:
+        # #     self.isDynamicMission = False
+        
+
+        # # cv2.imshow("original", cv2_image) 
+
+        # low_H = cv2.getTrackbarPos('low_H', 'Simulator_Image')
+        # low_L = cv2.getTrackbarPos('low_L', 'Simulator_Image')
+        # low_S = cv2.getTrackbarPos('low_S', 'Simulator_Image')
+        # high_H = cv2.getTrackbarPos('high_H', 'Simulator_Image')
+        # high_L = cv2.getTrackbarPos('high_L', 'Simulator_Image')
+        # high_S = cv2.getTrackbarPos('high_S', 'Simulator_Image')
+
+        # cv2.cvtColor(cv2_image, cv2.COLOR_BGR2HLS) # BGR to HSV
+
+        # lower_lane = np.array([low_H, low_L, low_S]) # 
+        # upper_lane = np.array([high_H, high_L, high_S])
+
+        # lane_image = cv2.inRange(cv2_image, lower_lane, upper_lane)
+
+        # cv2.imshow("Lane Image", lane_image)
+        # self.laneDetection(lane_image)
+        self.track_bar(cv2_image)
+        # cv2.waitKey(1)
+    
+    def track_bar(self, cv2_image):
         if self.initialized == False:
             cv2.namedWindow("Simulator_Image", cv2.WINDOW_NORMAL) 
-            cv2.createTrackbar('low_H', 'Simulator_Image', 128, 360, nothing)
-            cv2.createTrackbar('low_L', 'Simulator_Image', 134, 255, nothing)
-            cv2.createTrackbar('low_S', 'Simulator_Image', 87, 255, nothing)
-            cv2.createTrackbar('high_H', 'Simulator_Image', 334, 360, nothing)
-            cv2.createTrackbar('high_L', 'Simulator_Image', 255, 255, nothing)
-            cv2.createTrackbar('high_S', 'Simulator_Image', 251, 255, nothing)
+            cv2.createTrackbar('low_H', 'Simulator_Image', 0, 360, nothing)
+            cv2.createTrackbar('low_S', 'Simulator_Image', 21, 255, nothing)
+            cv2.createTrackbar('low_V', 'Simulator_Image', 0, 255, nothing)
+            cv2.createTrackbar('high_H', 'Simulator_Image', 297, 360, nothing)
+            cv2.createTrackbar('high_S', 'Simulator_Image', 154, 255, nothing)
+            cv2.createTrackbar('high_V', 'Simulator_Image', 186, 255, nothing)
             self.initialized = True
         
-        cv2_image = self.bridge.compressed_imgmsg_to_cv2(_data)
+        # cv2_image = self.bridge.compressed_imgmsg_to_cv2(_data)
         self.originalImg = cv2_image.copy()
         
         # if self.evalutator.evaluate(self.originalImg) == True:
@@ -129,25 +171,22 @@ class MainLoop:
         # cv2.imshow("original", cv2_image) 
 
         low_H = cv2.getTrackbarPos('low_H', 'Simulator_Image')
-        low_L = cv2.getTrackbarPos('low_L', 'Simulator_Image')
         low_S = cv2.getTrackbarPos('low_S', 'Simulator_Image')
+        low_V = cv2.getTrackbarPos('low_V', 'Simulator_Image')
         high_H = cv2.getTrackbarPos('high_H', 'Simulator_Image')
-        high_L = cv2.getTrackbarPos('high_L', 'Simulator_Image')
         high_S = cv2.getTrackbarPos('high_S', 'Simulator_Image')
+        high_V = cv2.getTrackbarPos('high_V', 'Simulator_Image')
 
-        cv2.cvtColor(cv2_image, cv2.COLOR_BGR2HLS) # BGR to HSV
+        cv2.cvtColor(cv2_image, cv2.COLOR_BGR2HSV) # BGR to HSV
 
-        lower_lane = np.array([low_H, low_L, low_S]) # 
-        upper_lane = np.array([high_H, high_L, high_S])
+        lower_lane = np.array([low_H, low_S, low_V]) # 
+        upper_lane = np.array([high_H, high_S, high_V])
 
         lane_image = cv2.inRange(cv2_image, lower_lane, upper_lane)
 
-        cv2.imshow("Lane Image", lane_image)
+        # cv2.imshow("Lane Image", lane_image)
         self.laneDetection(lane_image)
-
-        cv2.waitKey(1)
-    
-            
+        
     def object_callback(self, msg):
         if self.dynamic_flag != True or len(self.y_list) <= 19:
             self.y_list.append(msg.data)
@@ -163,6 +202,7 @@ class MainLoop:
         # cv2.imshow("warped_img", warped_img)
         self.slide_img, self.slide_x_location, self.current_lane_window = self.slidewindow.slidewindow(warped_img)
         cv2.imshow("slide_img", self.slide_img)
+        cv2.waitKey(1)
         # rospy.loginfo("CURRENT LANE WINDOW: {}".format(self.current_lane_window))
 
 
