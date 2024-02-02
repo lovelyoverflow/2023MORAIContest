@@ -11,7 +11,7 @@ from sensor_msgs.msg import CompressedImage
 from morai_msgs.msg import GetTrafficLightStatus
 from cv_bridge import CvBridge
 from std_msgs.msg import Float64
-from pidcal import Pidcal
+# from pidcal import Pidcal
 
 
 from math import isnan
@@ -19,7 +19,6 @@ from math import isnan
 
 class LaneFollower:
     def __init__(self) -> None:
-        rospy.init_node("LKAS_Node")
 
         #Image Data
         self.cv_img = None
@@ -69,79 +68,13 @@ class LaneFollower:
         self.speed = None
         self.directControl = None
         
-        self.pidcal = Pidcal()
+        # self.pidcal = Pidcal()
 
         #misc
         self.rate = rospy.Rate(30)
         self.bridge = CvBridge()
         self.left_traffic = False
-        
-    class Pidcal:
-        error_sum = 0
-        error_old = 0
-        #p = [0.0035, 0.000005, 0.005] # optimized kp,ki,kd original
-        #p = [0.0015, 0.000005, 0.005] # optimized kp,ki,kd original
-        p = [0.003, 0.000005, 0.005]
-        dp = [p[0]/10, p[1]/10, p[2]/10] # to twiddle kp, ki, kd
-
-        def __init__(self):
-            #print "init PidCal"
-            self.x = 0
-        def cal_error(self, setpoint=440):
-            return setpoint - self.x
-
-        # twiddle is for optimize the kp,ki,kd
-        def twiddle(self, setpoint=440):
-            best_err = self.cal_error(setpoint)
-            #threshold = 0.001
-            #threshold = 1e-09 
-            threshold = 0.0000000000000000000000000000001
-
-            # searching by move 1.1x to the target and if go more through the target comeback to -2x
-            while sum(self.dp) > threshold:
-                for i in range(len(self.p)):
-                    self.p[i] += self.dp[i]
-                    err = self.cal_error()
-
-                    if err < best_err:  # There was some improvement
-                        best_err = err
-                        self.dp[i] *= 1.1
-                    else:  # There was no improvement
-                        self.p[i] -= 2*self.dp[i]  # Go into the other direction
-                        err = self.cal_error()
-
-                        if err < best_err:  # There was an improvement
-                            best_err = err
-                            self.dp[i] *= 1.05
-                        else:  # There was no improvement
-                            self.p[i] += self.dp[i]
-                            # As there was no improvement, the step size in either
-                            # direction, the step size might simply be too big.
-                            self.dp[i] *= 0.95
-
-            #print(self.p)
-
-        # setpoint is the center and the x_current is where the car is
-        # width = 640, so 320 is the center but 318 is more accurate in real
-        def pid_control(self, x_current, PART, setpoint=320): #change just curve_count
-            self.p[0] = 0.00185 #0.00009 #0.002 #0.0035 #0.00095
-            self.p[1] = 0.000005
-            self.p[2] = 0.004
-
-            self.x = int(x_current)
-            self.twiddle(setpoint)
-
-            error = setpoint - x_current
-            p1 = round(self.p[0] * error, 9)
-            self.error_sum += error
-            i1 = round(self.p[1] * self.error_sum, 9)
-            d1 = round(self.p[2] * (error -  self.error_old), 9)
-            self.error_old = error
-            pid = p1 + i1 + d1
-            #print("p : " ,p)
-            #print("i : " ,i)
-            #print("d : " ,d)
-            return pid
+    
     
     ##인지
     def img_init(self, img):# -> img,img_hsv,x,y,h,s,v
@@ -535,16 +468,16 @@ class LaneFollower:
         x = self.x
         pos = self.pos
         
-        pid = round(self.pidcal.pid_control(pos, PART=None, setpoint=x // 2), 6)
+        # pid = round(self.pidcal.pid_control(pos, PART=None, setpoint=x // 2), 6)
    
-        # midstart = x//2-midrange
-        # midend = x//2+midrange
-        # if ctrl is None:
-        #     if not isnan(pos):
-        #         ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
-        #     else: ctrl = 0.5 # ctrl = self.cam.keycode
-        # self.cmd_msg.data = ctrl #조향각 설정
-        self.cmd_msg.data = 0.5 - pid
+        midstart = x//2-midrange
+        midend = x//2+midrange
+        if ctrl is None:
+            if not isnan(pos):
+                ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
+            else: ctrl = 0.5 # ctrl = self.cam.keycode
+        self.cmd_msg.data = ctrl #조향각 설정
+        # self.cmd_msg.data = 0.5 - pid
         print(self.cmd_msg.data)
         self.pub_steer.publish(self.cmd_msg.data)
         self.cmd_msg.data = self.speed
@@ -585,30 +518,30 @@ class LaneFollower:
         
     
 
-if __name__ == "__main__":
-    car = LaneFollower()
-    car.subscribe()
-    car.sub_traffic()
-    while not rospy.is_shutdown():
-        while car.cv_img is None: car.rate.sleep()
-        #인지
-        car.img_init(car.cv_img)
-        car.img_transform()
-        car.img_warp(car.yellow_range, change_img=False, warp_img_zoomx=car.x//2.5)
-        car.yellow_warped = car.warped_img
-        car.img_warp()
-        car.adjust_img()#판단
-        car.sliding_window()
+# if __name__ == "__main__":
+#     car = LaneFollower()
+#     car.subscribe()
+#     car.sub_traffic()
+#     while not rospy.is_shutdown():
+#         while car.cv_img is None: car.rate.sleep()
+#         #인지
+#         car.img_init(car.cv_img)
+#         car.img_transform()
+#         car.img_warp(car.yellow_range, change_img=False, warp_img_zoomx=car.x//2.5)
+#         car.yellow_warped = car.warped_img
+#         car.img_warp()
+#         car.adjust_img()#판단
+#         car.sliding_window()
 
-        #판단
-        car.go_sequence()
-        car.stop_line()
+#         #판단
+#         car.go_sequence()
+#         car.stop_line()
 
-        #제어
-        car.control_pub(ctrl=car.directControl)
+#         #제어
+#         car.control_pub(ctrl=car.directControl)
         
-        #cv2.imshow("img", car.cv_img)
-        cv2.circle(car.out_img, (int(car.pos), 550), 5, (255, 255, 255))
-        cv2.imshow("lane", car.out_img)
-        cv2.waitKey(1)
-        car.rate.sleep()
+#         #cv2.imshow("img", car.cv_img)
+#         cv2.circle(car.out_img, (int(car.pos), 550), 5, (255, 255, 255))
+#         cv2.imshow("lane", car.out_img)
+#         cv2.waitKey(1)
+#         car.rate.sleep()

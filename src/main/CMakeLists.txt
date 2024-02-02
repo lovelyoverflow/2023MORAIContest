@@ -19,9 +19,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-catkin_install_python(PROGRAMS
-  scripts/main.py
-  scripts/lane_main.py
-  scripts/pidcal.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# catkin_install_python(PROGRAMS
+#   scripts/main.py
+#   scripts/lane_main.py
+#   scripts/pidcal.py
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )

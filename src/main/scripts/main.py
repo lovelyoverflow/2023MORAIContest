@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import cv2
 import rospy
 import actionlib
@@ -16,45 +16,49 @@ class NavigationClient():
         
         self.waypoint_1 = MoveBaseGoal()
         self.waypoint_1.target_pose.header.frame_id = "map"
-        self.waypoint_1.target_pose.pose.position.x = 18.601542942942007
-        self.waypoint_1.target_pose.pose.position.y = -9.865300329485445
-        self.waypoint_1.target_pose.pose.orientation.w = 0.9999894849385434
-        self.waypoint_1.target_pose.pose.orientation.z = -0.004585849141274627
+        self.waypoint_1.target_pose.pose.position.x = 17.53599319448465
+        self.waypoint_1.target_pose.pose.position.y = -9.930902082927483
+        self.waypoint_1.target_pose.pose.orientation.w = 0.9998693821949046
+        self.waypoint_1.target_pose.pose.orientation.z = 0.016162256933356937
         
         self.goal_list.append(self.waypoint_1)
-        
+
+        self.car = LaneFollower()
+        self.car.subscribe()
+        self.car.sub_traffic()
+        self.slam = False
         self.sequence = 0
         self.start_time = rospy.Time.now()
         
     def run(self):
         if self.client.get_state() != GoalStatus.ACTIVE:
             self.start_time = rospy.Time.now()
-            self.sequence = (self.sequence + 1)
+            self.sequence = (self.sequence + 1) % 1
             self.client.send_goal(self.goal_list[self.sequence])
-        
         else:
-            car = LaneFollower()
-            car.subscribe()
-            car.sub_traffic()
+            self.stop()
+            self.slam = True
 
-            while car.cv_img is None: 
-                car.rate.sleep()
+        if self.slam:
+
+            while self.car.cv_img is None: 
+                self.car.rate.sleep()
                 
             #인지
-            car.img_init(car.cv_img)
-            car.img_transform()
-            car.img_warp(car.yellow_range, change_img=False, warp_img_zoomx=car.x//2.5)
-            car.yellow_warped = car.warped_img
-            car.img_warp()
-            car.adjust_img()#판단
-            car.sliding_window()
+            self.car.img_init(self.car.cv_img)
+            self.car.img_transform()
+            self.car.img_warp(self.car.yellow_range, change_img=False, warp_img_zoomx=self.car.x//2.5)
+            self.car.yellow_warped = self.car.warped_img
+            self.car.img_warp()
+            self.car.adjust_img()#판단
+            self.car.sliding_window()
 
             #판단
-            car.go_sequence()
-            car.stop_line()
+            self.car.go_sequence()
+            self.car.stop_line()
 
             #제어
-            car.control_pub(ctrl=car.directControl)
+            self.car.control_pub(ctrl=self.car.directControl)
     
     def stop(self):
         self.client.cancle_all_goals()
@@ -63,7 +67,7 @@ def main():
     rospy.init_node("navigation_client")
     nc = NavigationClient()
     rate = rospy.Rate(30)
-    
+
     while not rospy.is_shutdown():
         nc.run()
         rate.sleep()
