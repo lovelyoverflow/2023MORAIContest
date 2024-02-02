@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#-*- coding:utf-8 -*-
 class Pidcal:
     error_sum = 0
     error_old = 0
