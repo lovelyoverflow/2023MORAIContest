@@ -18,7 +18,7 @@ local_costmap:
     track_unknown_space: true
     combination_method: 1
     observation_sources: laser_scan_sensor
-    laser_scan_senser: {data_type: LaserScan, topic: scan, marking: true, clearing: true}
+    laser_scan_sensor: {data_type: LaserScan, topic: scan, marking: true, clearing: true}
 
   plugins:
     - {name: static_layer,  type: "costmap_2d::StaticLayer"}

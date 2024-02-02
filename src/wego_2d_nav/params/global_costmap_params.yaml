@@ -1,7 +1,7 @@
 global_costmap:
   global_frame: map
   robot_base_frame: base_link
-  update_frequency: 1.0
+  update_frequency: 5.0
   publish_frequency: 0.5
   static_map: true
   resolution: 0.1
@@ -15,7 +15,7 @@ global_costmap:
     track_unknown_space: true
     combination_method: 1
     observation_sources: laser_scan_sensor
-    laser_scan_senser: {data_type: LaserScan, topic: scan, marking: true, clearing: true}
+    laser_scan_sensor: {data_type: LaserScan, topic: scan, marking: true, clearing: true}
 
   plugins:
     - {name: static_layer,  type: "costmap_2d::StaticLayer"}

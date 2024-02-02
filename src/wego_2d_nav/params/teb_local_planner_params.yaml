@@ -21,7 +21,7 @@ TebLocalPlannerROS:
  acc_lim_theta: 0.5
  #max steering angle = 19.5 deg: r=wheelbase/tan(max_steer_angle)
  min_turning_radius: 0.755
- whellbase: 0.26
+ wheelbase: 0.26
  
  footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
    type: "polygon"

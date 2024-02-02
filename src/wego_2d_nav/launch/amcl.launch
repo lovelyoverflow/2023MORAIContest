@@ -35,9 +35,9 @@
       <param name="initial_pose_y" value="0.0"/>
       <param name="initial_pose_a" value="0.0"/>
       
-      <param name="initial_cov_xx" value="0.1"/>
-      <param name="initial_cov_yy" value="0.1"/>
-      <param name="initial_cov_aa" value="0.1"/>
+      <param name="initial_cov_xx" value="0.25"/>
+      <param name="initial_cov_yy" value="0.25"/>
+      <param name="initial_cov_aa" value="0.25"/>
 
     </node>
     </launch>
