@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find wego)/launch/teleop.launch"/>
+    <include file="$(find wego)/launch/navigation.launch"/>
+</launch>
