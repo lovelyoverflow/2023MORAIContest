@@ -11,6 +11,7 @@ from sensor_msgs.msg import CompressedImage
 from morai_msgs.msg import GetTrafficLightStatus
 from cv_bridge import CvBridge
 from std_msgs.msg import Float64
+from pidcal import Pidcal
 
 
 from math import isnan
@@ -66,6 +67,8 @@ class Lane_follower:
         self.midrange = 300
         self.speed = None
         self.directControl = None
+        
+        self.pidcal = Pidcal()
 
         #misc
         self.rate = rospy.Rate(30)
@@ -270,7 +273,7 @@ class Lane_follower:
     def go_sequence(self):
         if self.sequence == -1:
             print("seq -1")
-            self.speed = 1000
+            self.speed = 1500
             self.go_forward()
             self.start_time = time.time()
             self.sequence = 0
@@ -280,7 +283,7 @@ class Lane_follower:
             # self.speed = 500
 
         elif self.sequence == 0:
-            print("seq 0")
+            #print("seq 0")
             self.go_forward()
             elapsed_time = time.time() - self.start_time
             if self.stopline_count >= 4:
@@ -288,7 +291,7 @@ class Lane_follower:
                 self.sequence = 1
 
         elif self.sequence == 1:
-            print("seq 1")
+            #print("seq 1")
             self.go_forward()
             elapsed_time = time.time() - self.start_time
             if 12 <= elapsed_time:
@@ -296,7 +299,7 @@ class Lane_follower:
                 self.sequence = 2
 
         elif self.sequence == 2:
-            print("seq 2")
+            #print("seq 2")
             self.speed = 400
             self.go_left()
             elapsed_time = time.time() - self.start_time
@@ -463,14 +466,18 @@ class Lane_follower:
         midrange = self.midrange
         x = self.x
         pos = self.pos
-
-        midstart = x//2-midrange
-        midend = x//2+midrange
-        if ctrl is None:
-            if not isnan(pos):
-                ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
-            else: ctrl = 0.5 # ctrl = self.cam.keycode
-        self.cmd_msg.data = ctrl #조향각 설정
+        
+        pid = round(self.pidcal.pid_control(pos, PART=None, setpoint=x // 2), 6)
+   
+        # midstart = x//2-midrange
+        # midend = x//2+midrange
+        # if ctrl is None:
+        #     if not isnan(pos):
+        #         ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
+        #     else: ctrl = 0.5 # ctrl = self.cam.keycode
+        # self.cmd_msg.data = ctrl #조향각 설정
+        self.cmd_msg.data = 0.5 - pid
+        print(self.cmd_msg.data)
         self.pub_steer.publish(self.cmd_msg.data)
         self.cmd_msg.data = self.speed
         self.pub.publish(self.cmd_msg.data)
@@ -532,7 +539,8 @@ if __name__ == "__main__":
         #제어
         car.control_pub(ctrl=car.directControl)
         
-        # cv2.imshow("img", car.cv_img)
-        # cv2.imshow("lane", car.out_img)
-        # cv2.waitKey(1)
+        #cv2.imshow("img", car.cv_img)
+        cv2.circle(car.out_img, (int(car.pos), 550), 5, (255, 255, 255))
+        cv2.imshow("lane", car.out_img)
+        cv2.waitKey(1)
         car.rate.sleep()
