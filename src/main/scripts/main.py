@@ -1,8 +1,9 @@
+#!/usr/bin/env python
 import cv2
 import rospy
 import actionlib
 
-from lane_detection.scripts.lane_main import LaneFollower
+from lane_main import LaneFollower
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
 
