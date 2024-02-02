@@ -8,6 +8,7 @@ import cv2
 import time
 import rospy
 from sensor_msgs.msg import CompressedImage
+from morai_msgs.msg import GetTrafficLightStatus
 from cv_bridge import CvBridge
 from std_msgs.msg import Float64
 
@@ -62,13 +63,14 @@ class Lane_follower:
         self.pub = rospy.Publisher("/commands/motor/speed", Float64, queue_size=1)
         self.pub_steer = rospy.Publisher("/commands/servo/position", Float64, queue_size=1)
         self.cmd_msg = Float64()
-        self.midrange = 350
+        self.midrange = 300
         self.speed = None
         self.directControl = None
 
         #misc
         self.rate = rospy.Rate(30)
         self.bridge = CvBridge()
+        self.left_traffic = False
 
     ##인지
     def img_init(self, img):# -> img,img_hsv,x,y,h,s,v
@@ -274,7 +276,7 @@ class Lane_follower:
             self.sequence = 0
             
             #3번째 지나고 출발
-            # self.sequence = 9
+            # self.sequence = 12
             # self.speed = 500
 
         elif self.sequence == 0:
@@ -350,6 +352,13 @@ class Lane_follower:
             self.speed = 800
             print(np.sum(self.yellow_warped))
             if np.sum(self.yellow_warped) <= 200000:
+                self.speed = 0
+                self.sequence = 7.5
+                
+            
+        elif self.sequence == 7.5:
+            print("Traffic Light")
+            if self.left_traffic:
                 self.start_time = time.time()
                 self.speed = 400
                 self.stopline_count = 0
@@ -369,7 +378,7 @@ class Lane_follower:
         elif self.sequence == 9:
             self.go_yellow()
             self.speed = 800
-            if np.sum(self.yellow_warped) <= 200000:
+            if np.sum(self.yellow_warped) <= 500000:
                 self.sequence = 10
                 print("seq end")
 
@@ -404,11 +413,32 @@ class Lane_follower:
         elif self.sequence == 13:
             print("seq 13")
             self.directControl = 0.5
-            if np.sum(self.yellow_warped) > 0:
+            if np.sum(self.yellow_warped) > 400000:
+                self.start_time = time.time()
                 self.stopline_count = 0
+                self.directControl = None
                 self.sequence = 14
 
-        elif self.sequence == 14: self.speed = 0
+        elif self.sequence == 14:
+            print("seq 14")
+            self.go_yellow()
+            elapsed_time = time.time() - float(self.start_time)
+            if elapsed_time > 2:
+                self.sequence = 15
+                self.stopline_count = 0
+        
+        elif self.sequence == 15 or self.sequence == 15.5:
+            print("seq 15")
+            self.yellow_based_slidingwindow = True
+            self.go_left(offset=0)
+            if self.sequence == 15.5:
+                self.img = self.img_backup
+            self.sequence = 15.5
+            if self.stopline_count >= 1:
+                self.sequence = 16
+                print("seq end")
+                self.speed = 0
+    
 
     def stop_line(self, lane = None):
         if lane is None: lane = self.img
@@ -464,15 +494,26 @@ class Lane_follower:
 
     ## ROS 관련 메서드
     def subscribe(self):
-        rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size = 1)
+        rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size=1)
     def _img_cb(self, msg):
         self.cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)
 
+    def sub_traffic(self):
+        rospy.Subscriber("/GetTrafficLightStatus", GetTrafficLightStatus, callback=self._traffic_cb, queue_size=1)
+    def _traffic_cb(self, msg):
+        if msg.trafficLightStatus == 33:
+            self.left_traffic = True
+        else:
+            # print("Status:", msg.trafficLightStatus)
+            self.left_traffic = False
+
+        
     
 
 if __name__ == "__main__":
     car = Lane_follower()
     car.subscribe()
+    car.sub_traffic()
     while not rospy.is_shutdown():
         while car.cv_img is None: car.rate.sleep()
         #인지
@@ -491,7 +532,7 @@ if __name__ == "__main__":
         #제어
         car.control_pub(ctrl=car.directControl)
         
-        cv2.imshow("img", car.cv_img)
-        cv2.imshow("lane", car.out_img)
-        cv2.waitKey(1)
+        # cv2.imshow("img", car.cv_img)
+        # cv2.imshow("lane", car.out_img)
+        # cv2.waitKey(1)
         car.rate.sleep()
