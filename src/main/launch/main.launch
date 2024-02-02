@@ -1,4 +1,6 @@
 <launch>
     <include file="$(find wego)/launch/teleop.launch"/>
     <include file="$(find wego)/launch/navigation.launch"/>
+
+    <node pkg="main" type="main.py" name="main"/>
 </launch>
