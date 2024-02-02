@@ -54,4 +54,10 @@ qtcreator-*
 # Catkin custom files
 CATKIN_IGNORE
 
+# rosbag 
+src/obstacle_detector/resources/*.bag
+src/obstacle_detector/resources/*.bag.active
+
+.git
+
 # End of https://www.toptal.com/developers/gitignore/api/ros
