@@ -63,12 +63,8 @@ def main():
     rospy.init_node("navigation_client")
     nc = NavigationClient()
     rate = rospy.Rate(30)
-<<<<<<< HEAD
     
     nc.client.send_goal(nc.goal_list[nc.sequence])
-=======
-
->>>>>>> 65dddab6acd389a5a12cfe81faa9787d6bb375ce
     while not rospy.is_shutdown():
         if nc.client.get_state() != GoalStatus.SUCCEEDED:
             continue
