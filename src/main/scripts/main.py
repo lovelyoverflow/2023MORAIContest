@@ -7,12 +7,20 @@ import actionlib
 from lane_main import LaneFollower
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
+from cv_bridge import CvBridge
+
+from sensor_msgs.msg import CompressedImage
+from morai_msgs.msg import GetTrafficLightStatus
+from std_msgs.msg import Float64
+
+#zfrom obstacle_detector.msg import Obstacles
 
 class NavigationClient():
     def __init__(self):
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.client.wait_for_server()
-        
+        self.bridge = CvBridge()
+        self.left_traffic = False
         self.killed = False
         self.goal_list = list()
         
@@ -25,13 +33,33 @@ class NavigationClient():
         
         self.goal_list.append(self.waypoint_1)
 
+        # 차선주행 관련 sub, pub
         self.car = LaneFollower()
-        self.car.subscribe()
-        self.car.sub_traffic()
+        
+        # def _img_cb(msg):
+        #     self.car.cv_img = self.car.bridge.compressed_imgmsg_to_cv2(msg)
+        rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size=1)
+        
+        rospy.Subscriber("/GetTrafficLightStatus", GetTrafficLightStatus, callback=self._traffic_cb, queue_size=1)
+        
+        self.pub_speed = rospy.Publisher("/commands/motor/speed", Float64, queue_size=1)
+        self.pub_steer = rospy.Publisher("/commands/servo/position", Float64, queue_size=1)
+                
         self.slam = False
         self.sequence = 0
         self.start_time = rospy.Time.now()
         
+    
+    def _traffic_cb(self, msg):
+            if msg.trafficLightStatus == 33:
+                self.car.left_traffic = True
+            else:
+                # print("Status:", msg.trafficLightStatus)
+                self.car.left_traffic = False    
+                
+    def _img_cb(self, msg):
+            self.car.cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)
+            
     def run(self):
         if not self.killed:
             os.system("rosnode kill /throttle_interpolator")
@@ -55,6 +83,12 @@ class NavigationClient():
 
         #제어
         self.car.control_pub(ctrl=self.car.directControl)
+        self.pub_speed.publish(self.car.speed_msg.data)
+        self.pub_steer.publish(self.car.steering_msg.data)
+        
+        cv2.circle(self.car.out_img, (int(self.car.pos), 550), 5, (255, 255, 255))
+        cv2.imshow("lane", self.car.out_img)
+        cv2.waitKey(1)
 
     def stop(self):
         self.client.cancle_all_goals()
