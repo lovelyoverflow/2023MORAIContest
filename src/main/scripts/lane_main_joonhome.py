@@ -340,7 +340,6 @@ class LaneFollower:
             elapsed_time = time.time() - self.start_time
             if elapsed_time < 2:
                 self.directControl = 0.6
-                self.midrange = 450
             elif elapsed_time < 3:
                 self.directControl = 0.6
             elif elapsed_time < 4:
