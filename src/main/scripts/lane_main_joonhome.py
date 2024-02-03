@@ -339,11 +339,11 @@ class LaneFollower:
             print("seq 6")
             elapsed_time = time.time() - self.start_time
             if elapsed_time < 2:
-                self.directControl = 0.6
+                self.directControl = 0.7
             elif elapsed_time < 3:
                 self.directControl = 0.6
             elif elapsed_time < 4:
-                self.directControl = 0.8
+                self.directControl = 0.6
             else:
                 self.directControl = None
                 self.sequence = 6.5
