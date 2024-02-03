@@ -275,13 +275,14 @@ class LaneFollower:
         if self.sequence == -1:
             print("seq -1")
             self.speed = 1500
+            time.sleep(1)
             self.go_forward()
             self.start_time = time.time()
             self.sequence = 0
             
             #3번째 지나고 출발
-            # self.sequence = 12
-            # self.speed = 500
+            # self.sequence = 2
+            # self.speed = 400
 
         elif self.sequence == 0:
             print("seq 0")
@@ -304,8 +305,9 @@ class LaneFollower:
             self.speed = 400
             self.go_left()
             elapsed_time = time.time() - self.start_time
-            if 7 <= elapsed_time:
+            if 8 <= elapsed_time:
                 self.start_time = time.time()
+                self.directControl
                 self.midrange += 70
                 self.sequence = 3
         
@@ -338,12 +340,22 @@ class LaneFollower:
         elif self.sequence == 6:
             print("seq 6")
             elapsed_time = time.time() - self.start_time
-            if elapsed_time < 2:
-                self.directControl = 0.7
+            if elapsed_time < 0.7:
+                self.directControl = 0.5
+            elif elapsed_time < 2:
+                self.directControl = 1
+            elif elapsed_time < 2.5:
+                self.directControl = 0.8
             elif elapsed_time < 3:
-                self.directControl = 0.6
-            elif elapsed_time < 4:
-                self.directControl = 0.6
+                self.directControl = 0.3
+            elif elapsed_time < 3.3:
+                self.directControl = 0.3
+            elif elapsed_time < 3.6:
+                self.directControl = 0.3
+            elif elapsed_time < 3.8:
+                self.directControl = 0.35
+            elif elapsed_time < 4.5:
+                self.directControl = 1
             else:
                 self.directControl = None
                 self.sequence = 6.5
@@ -365,6 +377,7 @@ class LaneFollower:
             print("Traffic Light")
             if self.left_traffic:
                 self.start_time = time.time()
+                self.directControl = 0.5
                 self.speed = 400
                 self.stopline_count = 0
                 self.sequence = 8
@@ -383,15 +396,16 @@ class LaneFollower:
                 
         elif self.sequence == 8.5:
             elapsed_time = time.time() - float(self.start_time)
-            self.directControl = 0.5
+            self.directControl = 0.2
             if elapsed_time >= 1:
+                self.directControl = None
                 self.start_time = time.time()
                 self.sequence = 9
         
         elif self.sequence == 9:
             self.go_yellow()
             self.speed = 800
-            if np.sum(self.yellow_warped) <= 500000:
+            if np.sum(self.yellow_warped) <= 300000:
                 self.sequence = 10
                 print("seq end")
 
@@ -405,8 +419,9 @@ class LaneFollower:
                 
         elif self.sequence == 10.5:
             elapsed_time = time.time() - float(self.start_time)
-            self.directControl = 0.5
+            self.directControl = 0.8
             if elapsed_time >= 1:
+                self.directControl = None
                 self.start_time = time.time()
                 self.sequence = 11
         
