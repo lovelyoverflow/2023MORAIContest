@@ -10,9 +10,9 @@ import rospy
 from sensor_msgs.msg import CompressedImage
 from morai_msgs.msg import GetTrafficLightStatus
 from cv_bridge import CvBridge
-from std_msgs.msg import Float64
 # from pidcal import Pidcal
 
+from std_msgs.msg import Float64
 
 from math import isnan
 
@@ -59,14 +59,14 @@ class LaneFollower:
         self.sequence = -1
         self.cut_img_top = False
         self.yellow_based_slidingwindow = False
+        self.steering_msg = Float64()
+        self.speed_msg = Float64()
 
         #control_pub
-        self.pub = rospy.Publisher("/commands/motor/speed", Float64, queue_size=1)
-        self.pub_steer = rospy.Publisher("/commands/servo/position", Float64, queue_size=1)
-        self.cmd_msg = Float64()
         self.midrange = 300
         self.speed = None
         self.directControl = None
+        
         
         # self.pidcal = Pidcal()
 
@@ -295,7 +295,7 @@ class LaneFollower:
             print("seq 1")
             self.go_forward()
             elapsed_time = time.time() - self.start_time
-            if 12 <= elapsed_time:
+            if 8.5 <= elapsed_time:
                 self.start_time = time.time()
                 self.sequence = 2
 
@@ -304,9 +304,9 @@ class LaneFollower:
             self.speed = 400
             self.go_left()
             elapsed_time = time.time() - self.start_time
-            if 6 <= elapsed_time:
+            if 7 <= elapsed_time:
                 self.start_time = time.time()
-                
+                self.midrange += 70
                 self.sequence = 3
         
         elif self.sequence == 3:
@@ -316,6 +316,7 @@ class LaneFollower:
                 
         elif self.sequence == 3.5:
             self.stopline_count = 0
+            self.midrange -= 70
             self.sequence = 4
         
         elif self.sequence == 4:
@@ -372,12 +373,20 @@ class LaneFollower:
             print("횡단보도 좌회전")
             elapsed_time = time.time() - float(self.start_time)
             if elapsed_time < 1:
-                self.directControl = 0.3
+                self.directControl = 0.5
             else:
                 self.directControl = None
                 self.go_left()
                 if elapsed_time >= 5:
-                    self.sequence = 9
+                    self.start_time = time.time()
+                    self.sequence = 8.5
+                
+        elif self.sequence == 8.5:
+            elapsed_time = time.time() - float(self.start_time)
+            self.directControl = 0.5
+            if elapsed_time >= 1:
+                self.start_time = time.time()
+                self.sequence = 9
         
         elif self.sequence == 9:
             self.go_yellow()
@@ -392,9 +401,16 @@ class LaneFollower:
             self.go_right()
             if self.cut_img_top == None:
                 self.start_time = time.time()
+                self.sequence = 10.5
+                
+        elif self.sequence == 10.5:
+            elapsed_time = time.time() - float(self.start_time)
+            self.directControl = 0.5
+            if elapsed_time >= 1:
+                self.start_time = time.time()
                 self.sequence = 11
         
-        if self.sequence == 11:
+        elif self.sequence == 11:
             self.speed = 1000
             print("seq 11")
             self.go_yellow()
@@ -441,7 +457,7 @@ class LaneFollower:
             if self.stopline_count >= 1:
                 self.sequence = 16
                 print("seq end")
-                self.speed = 0
+                # self.speed = 0
     
 
     def stop_line(self, lane = None):
@@ -469,6 +485,7 @@ class LaneFollower:
         pos = self.pos
         
         # pid = round(self.pidcal.pid_control(pos, PART=None, setpoint=x // 2), 6)
+        # self.cmd_msg.data = 0.5 - pid
    
         midstart = x//2-midrange
         midend = x//2+midrange
@@ -476,12 +493,9 @@ class LaneFollower:
             if not isnan(pos):
                 ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
             else: ctrl = 0.5 # ctrl = self.cam.keycode
-        self.cmd_msg.data = ctrl #조향각 설정
-        # self.cmd_msg.data = 0.5 - pid
-        print(self.cmd_msg.data)
-        self.pub_steer.publish(self.cmd_msg.data)
-        self.cmd_msg.data = self.speed
-        self.pub.publish(self.cmd_msg.data)
+        self.steering_msg.data = ctrl #조향각 설정
+        
+        self.speed_msg.data = self.speed
 
     ## 테스트용 메서드
     def use_test_img(self, img_src = "src/lane_detection/scripts/img.jpg"): # -> cv_img
@@ -501,19 +515,19 @@ class LaneFollower:
         cv2.imshow("Image", img)
 
     ## ROS 관련 메서드
-    def subscribe(self):
-        rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size=1)
-    def _img_cb(self, msg):
-        self.cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)
+    # def subscribe(self):
+    #     rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size=1)
+    # def _img_cb(self, msg):
+    #     self.cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)
 
-    def sub_traffic(self):
-        rospy.Subscriber("/GetTrafficLightStatus", GetTrafficLightStatus, callback=self._traffic_cb, queue_size=1)
-    def _traffic_cb(self, msg):
-        if msg.trafficLightStatus == 33:
-            self.left_traffic = True
-        else:
-            # print("Status:", msg.trafficLightStatus)
-            self.left_traffic = False
+    # def sub_traffic(self):
+    #     rospy.Subscriber("/GetTrafficLightStatus", GetTrafficLightStatus, callback=self._traffic_cb, queue_size=1)
+    # def _traffic_cb(self, msg):
+    #     if msg.trafficLightStatus == 33:
+    #         self.left_traffic = True
+    #     else:
+    #         # print("Status:", msg.trafficLightStatus)
+    #         self.left_traffic = False
 
         
     
