@@ -11,8 +11,7 @@ from cv_bridge import CvBridge
 
 from sensor_msgs.msg import CompressedImage
 from morai_msgs.msg import GetTrafficLightStatus
-from std_msgs.msg import Float64
-
+from std_msgs.msg import Int32, String, Float32, Float64
 #zfrom obstacle_detector.msg import Obstacles
 
 class NavigationClient():
@@ -39,9 +38,11 @@ class NavigationClient():
         # def _img_cb(msg):
         #     self.car.cv_img = self.car.bridge.compressed_imgmsg_to_cv2(msg)
         rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size=1)
-        
+        rospy.Subscriber("/lidar_warning", String, self.lidar_warning_callback)
+        rospy.Subscriber("/object_condition", Float32, self.object_callback)
         rospy.Subscriber("/GetTrafficLightStatus", GetTrafficLightStatus, callback=self._traffic_cb, queue_size=1)
-        
+
+        self.current_lane_pub = rospy.Publisher("/current_lane", Float64, queue_size=1)  # 1 = right, 2 = left
         self.pub_speed = rospy.Publisher("/commands/motor/speed", Float64, queue_size=1)
         self.pub_steer = rospy.Publisher("/commands/servo/position", Float64, queue_size=1)
                 
@@ -59,6 +60,25 @@ class NavigationClient():
                 
     def _img_cb(self, msg):
             self.car.cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)
+
+    def lidar_warning_callback(self, msg):
+        self.car.lidar_warning = msg.data
+        if self.car.lidar_warning == "safe":
+            self.car.is_safe = True
+        elif self.car.lidar_warning == "WARNING":
+            self.car.is_safe = False
+            rospy.loginfo("WARNING !! ")
+        else:
+            # rospy.loginfo("엥?????????????????????//")
+            pass
+
+    def object_callback(self, msg):
+        if not self.car.dynamic_flag or len(self.car.y_list) <= 19:
+            self.car.y_list.append(msg.data)
+            if len(self.car.y_list) >= 21:
+                del self.car.y_list[0]
+        else:
+            rospy.logwarn("Unknown warning state!")
             
     def run(self):
         if not self.killed:
@@ -83,6 +103,7 @@ class NavigationClient():
 
         #제어
         self.car.control_pub(ctrl=self.car.directControl)
+        self.current_lane_pub.publish(self.car.lane_msg)
         self.pub_speed.publish(self.car.speed_msg.data)
         self.pub_steer.publish(self.car.steering_msg.data)
         
