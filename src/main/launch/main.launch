@@ -6,6 +6,8 @@
     <node pkg="main" type="lane_main.py" name="lane_main"/>
     <node pkg="main" type="pidcal.py" name="pidcal"/> -->
     <node name="main" type="main.py" pkg="main" output="screen"/>
+    <node name="main" type="obstacle_detectors.py" pkg="main" output="screen"/>
+
     <!-- <node name="lane_main" type="lane_main.py" pkg="main" output="screen"/> -->
     <!-- <node name="pidcal" type="pidcal.py" pkg="main" output="screen"/> -->
 
