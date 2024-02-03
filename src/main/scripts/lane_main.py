@@ -19,7 +19,6 @@ from math import isnan
 
 class LaneFollower:
     def __init__(self) -> None:
-        rospy.init_node("LKAS_Node")
 
         #Image Data
         self.cv_img = None
@@ -351,7 +350,7 @@ class LaneFollower:
             # self.speed = 500
 
         elif self.sequence == 0:
-            #print("seq 0")
+            print("seq 0")
             self.go_forward()
             elapsed_time = time.time() - self.start_time
             if self.stopline_count >= 4:
@@ -359,7 +358,7 @@ class LaneFollower:
                 self.sequence = 1
 
         elif self.sequence == 1:
-            #print("seq 1")
+            print("seq 1")
             self.go_forward()
             elapsed_time = time.time() - self.start_time
             if 12 <= elapsed_time:
@@ -367,7 +366,7 @@ class LaneFollower:
                 self.sequence = 2
 
         elif self.sequence == 2:
-            #print("seq 2")
+            print("seq 2")
             self.speed = 400
             self.go_left()
             elapsed_time = time.time() - self.start_time
