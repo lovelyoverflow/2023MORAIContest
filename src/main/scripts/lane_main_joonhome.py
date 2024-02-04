@@ -15,7 +15,7 @@ from cv_bridge import CvBridge
 from std_msgs.msg import Float64
 
 from math import isnan
-import statistics
+
 
 class LaneFollower:
     def __init__(self) -> None:
@@ -66,27 +66,8 @@ class LaneFollower:
         self.midrange = 300
         self.speed = None
         self.directControl = None
-
-        self.lane_msg = Float64()
-        # obstacle detector
-        self.current_lane = "RIGHT"
-        self.is_safe = True
-        self.dynamic_flag = False
-        self.dynamic_mission = False
-        self.DynamicDrive = False
-
-        # static obstacle mission
-        self.static_flag = False
-        self.static_mission = False
-        self.turn_left_flag = 0
-        self.turn_right_flag = 0
-
-        # lidar warning string
-        self.lidar_warning = ""
-
-        self.y_list = []
-        self.y_list_sort = []
-
+        
+        
         # self.pidcal = Pidcal()
 
         #misc
@@ -290,36 +271,22 @@ class LaneFollower:
 
         self.pos = (posl - 261) * 2 + self.x//2
 
-    def go_yellow_obstacle(self):
-        lane = np.sum(self.yellow_warped, axis=0)
-        if self.current_lane == "RIGHT":
-            lane_pos = 350
-        elif self.current_lane == "LEFT":
-            lane_pos = 261
-
-        posl = 0
-        for i, p_cur in enumerate(lane):
-            posl += (i*p_cur)
-        posl /= np.sum(lane)
-
-        self.pos = (posl - lane_pos) * 2 + self.x//2
-
     def go_sequence(self):
         if self.sequence == -1:
             print("seq -1")
             self.speed = 1500
+            time.sleep(1)
             self.go_forward()
             self.start_time = time.time()
             self.sequence = 0
             
             #3번째 지나고 출발
-            # self.sequence = 12
-            # self.speed = 500
+            # self.sequence = 2
+            # self.speed = 400
 
         elif self.sequence == 0:
             print("seq 0")
-            # self.go_forward()
-            self.obstacle_decide()
+            self.go_forward()
             elapsed_time = time.time() - self.start_time
             if self.stopline_count >= 4:
                 self.start_time = time.time()
@@ -327,8 +294,7 @@ class LaneFollower:
 
         elif self.sequence == 1:
             print("seq 1")
-            # self.go_forward()
-            self.obstacle_decide()
+            self.go_forward()
             elapsed_time = time.time() - self.start_time
             if 8.5 <= elapsed_time:
                 self.start_time = time.time()
@@ -339,8 +305,9 @@ class LaneFollower:
             self.speed = 400
             self.go_left()
             elapsed_time = time.time() - self.start_time
-            if 7 <= elapsed_time:
+            if 8 <= elapsed_time:
                 self.start_time = time.time()
+                self.directControl
                 self.midrange += 70
                 self.sequence = 3
         
@@ -373,11 +340,21 @@ class LaneFollower:
         elif self.sequence == 6:
             print("seq 6")
             elapsed_time = time.time() - self.start_time
-            if elapsed_time < 1:
-                self.directControl = 1
+            if elapsed_time < 0.7:
+                self.directControl = 0.5
             elif elapsed_time < 2:
-                self.directControl = 0.45
+                self.directControl = 1
+            elif elapsed_time < 2.5:
+                self.directControl = 0.8
             elif elapsed_time < 3:
+                self.directControl = 0.3
+            elif elapsed_time < 3.3:
+                self.directControl = 0.3
+            elif elapsed_time < 3.6:
+                self.directControl = 0.3
+            elif elapsed_time < 3.8:
+                self.directControl = 0.35
+            elif elapsed_time < 4.5:
                 self.directControl = 1
             else:
                 self.directControl = None
@@ -400,6 +377,7 @@ class LaneFollower:
             print("Traffic Light")
             if self.left_traffic:
                 self.start_time = time.time()
+                self.directControl = 0.5
                 self.speed = 400
                 self.stopline_count = 0
                 self.sequence = 8
@@ -418,15 +396,16 @@ class LaneFollower:
                 
         elif self.sequence == 8.5:
             elapsed_time = time.time() - float(self.start_time)
-            self.directControl = 0.5
+            self.directControl = 0.2
             if elapsed_time >= 1:
+                self.directControl = None
                 self.start_time = time.time()
                 self.sequence = 9
         
         elif self.sequence == 9:
             self.go_yellow()
             self.speed = 800
-            if np.sum(self.yellow_warped) <= 500000:
+            if np.sum(self.yellow_warped) <= 300000:
                 self.sequence = 10
                 print("seq end")
 
@@ -440,8 +419,9 @@ class LaneFollower:
                 
         elif self.sequence == 10.5:
             elapsed_time = time.time() - float(self.start_time)
-            self.directControl = 0.5
+            self.directControl = 0.8
             if elapsed_time >= 1:
+                self.directControl = None
                 self.start_time = time.time()
                 self.sequence = 11
         
@@ -512,97 +492,6 @@ class LaneFollower:
         else: self.stopline_toggle += 1
 
     # def lane_change
-    ####################### obstalce detector ########################
-    def obstacle_decide(self):
-        rospy.loginfo("OBSTACLE DECIDE")
-        if self.current_lane == "RIGHT":
-            self.lane_msg.data = 1
-        elif self.current_lane == "LEFT":
-            self.lane_msg.data = 2
-
-        if not self.is_safe:
-
-            self.y_list_sort = sorted(self.y_list, key=lambda x: x)
-            rospy.loginfo("Y_LIST{}".format(self.y_list))
-
-            # dynamic_obstacle_drive
-            if len(self.y_list) <= 19:
-                # self.stop()
-                self.dynamic_obstacle_drive()
-                # rospy.loginfo("obstacle_stop, dynamic_flag = {}", format(self.dynamic_flag))
-
-            # dynamic ostacle loginfo
-            elif abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])) >= 0.17 or \
-                    self.y_list_sort[10] < -0.15:
-                self.dynamic_flag = True
-                self.static_flag = False
-                # self.y_list.clear
-                rospy.loginfo("dynamic")
-                # rospy.loginfo(self.y_list_sort)
-                rospy.loginfo(abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])))
-
-            # static obstacle loginfo
-            else:
-                self.static_cnt += 1
-                if self.static_cnt >= 10:
-                    self.static_flag = True
-                    self.dynamic_flag = False
-                    self.static_cnt = 0
-                rospy.loginfo("static")
-                # rospy.loginfo(self.y_list_sort)
-                rospy.loginfo(abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])))
-
-            # dynamic_obstacle_drive
-            if self.dynamic_flag and not self.is_safe:
-                rospy.logwarn("DYNAMIC OBSTACLE")
-                # self.stop()
-                self.dynamic_obstacle_drive()
-
-            # static_obstacle_drive
-            elif self.static_flag:  # true
-                rospy.loginfo("STATIC OBSTACLE")
-                self.static_obstacle_drive()
-            # if the car is driving depending on "right" window
-
-        else:
-            rospy.loginfo("NOT OBSTACLE !!!!!!")
-            self.directControl = None
-            self.go_forward()
-
-    # static obstacle drive
-    def static_obstacle_drive(self):
-        # 왼쪽으로 각도 틀고 원래 차선으로 복귀 후 주행
-        rospy.loginfo("MISSION : STATIC")
-        t2 = rospy.get_time()
-        if not self.static_flag:
-            self.static_t1 = rospy.get_time()
-            self.static_mission = True
-            self.static_flag = True
-
-        # if self.current_lane == "RIGHT":
-        #    if t2 - self.static_t1 < 2.0 : #몇초동안 멈출지
-        #        self.speed_msg.data = 0
-        #    else :
-        #        if static_flag
-
-        if self.current_lane == "LEFT":
-            self.speed = 1000
-            self.current_lane = "RIGHT"
-            self.go_yellow_obstacle()
-                
-
-        elif self.current_lane == "RIGHT":
-            self.speed = 1000
-            self.current_lane = "LEFT"
-            self.go_yellow_obstacle()
-
-    # dynamic obstacle drive
-    def dynamic_obstacle_drive(self):
-        # 멈췄다가 주행
-        rospy.loginfo("MISSION : DYNAMIC")
-        self.static_mission = False
-        self.speed = 0
-        self.directControl = 0.5
 
     ##제어
     def control_pub(self, ctrl = None): # speed,midrange,x,pos
