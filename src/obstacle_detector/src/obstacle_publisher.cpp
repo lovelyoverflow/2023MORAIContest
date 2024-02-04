@@ -86,7 +86,7 @@ bool ObstaclePublisher::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
   nh_local_.getParam("vx_vector", p_vx_vector_);
   nh_local_.getParam("vy_vector", p_vy_vector_);
 
-  nh_local_.param<string>("frame_id", p_frame_id_, string("map"));
+  nh_local_.param<string>("frame_id", p_frame_id_, string("odom"));
 
   p_sampling_time_ = 1.0 / p_loop_rate_;
   timer_.setPeriod(ros::Duration(p_sampling_time_), false);

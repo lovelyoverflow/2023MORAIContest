@@ -102,13 +102,13 @@ bool ObstacleExtractor::updateParams(std_srvs::Empty::Request &req, std_srvs::Em
   nh_local_.param<double>("min_y_limit", p_min_y_limit_, -10.0);
   nh_local_.param<double>("max_y_limit", p_max_y_limit_,  10.0);
 
-  nh_local_.param<string>("frame_id", p_frame_id_, "map");
+  nh_local_.param<string>("frame_id", p_frame_id_, "odom");
 
   if (p_active_ != prev_active) {
     if (p_active_) {
       cout << "!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
       if (p_use_scan_)
-        scan_sub_ = nh_.subscribe("lidar2D", 10, &ObstacleExtractor::scanCallback, this);
+        scan_sub_ = nh_.subscribe("scan", 10, &ObstacleExtractor::scanCallback, this);
       else if (p_use_pcl_)
         pcl_sub_ = nh_.subscribe("pcl", 10, &ObstacleExtractor::pclCallback, this);
 
