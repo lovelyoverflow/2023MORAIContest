@@ -247,8 +247,8 @@ class LaneFollower:
         x = self.x
         line_len = 286
 
-        posl = int(np.sum(poslf[0][1:4])/3)
-        posr = int(np.sum(posrf[0][1:4])/3)
+        posl = int(poslf[0][3])
+        posr = int(posrf[0][3])
         fail_threshold = 3
         # print(posr[2])
         if max(poslf[2]) >= fail_threshold: posl = posr - line_len 
@@ -289,6 +289,20 @@ class LaneFollower:
         posl /= np.sum(lane)
 
         self.pos = (posl - 261) * 2 + self.x//2
+
+    def go_yellow_obstacle(self):
+        lane = np.sum(self.yellow_warped, axis=0)
+        if self.current_lane == "RIGHT":
+            lane_pos = 350
+        elif self.current_lane == "LEFT":
+            lane_pos = 261
+
+        posl = 0
+        for i, p_cur in enumerate(lane):
+            posl += (i*p_cur)
+        posl /= np.sum(lane)
+
+        self.pos = (posl - lane_pos) * 2 + self.x//2
 
     def go_sequence(self):
         if self.sequence == -1:
@@ -552,6 +566,7 @@ class LaneFollower:
 
         else:
             rospy.loginfo("NOT OBSTACLE !!!!!!")
+            self.directControl = None
             self.go_forward()
 
     # static obstacle drive
@@ -571,42 +586,23 @@ class LaneFollower:
         #        if static_flag
 
         if self.current_lane == "LEFT":
-            self.speed_msg.data = 1000
-            if t2 - self.static_t1 < 1.8:
-                self.angle_msg.data = 0.87
-            elif t2 - self.static_t1 < 2.6:
-                self.angle_msg.data = 0.27
-            else:
-                self.angle_msg.data = 0.57
-                self.current_lane = "RIGHT"
-                self.static_mission = False
-                self.static_flag = False
+            self.speed = 1000
+            self.current_lane = "RIGHT"
+            self.go_yellow_obstacle()
+                
 
         elif self.current_lane == "RIGHT":
-            self.speed_msg.data = 1000
-            if t2 - self.static_t1 < 1.8:
-                self.angle_msg.data = 0.27
-            elif t2 - self.static_t1 < 2.6:
-                self.angle_msg.data = 0.87
-            else:
-                self.angle_msg.data = 0.57
-                self.current_lane = "LEFT"
-                self.static_mission = False
-                self.static_flag = False
-
-        self.speed_pub.publish(self.speed_msg)
-        self.angle_pub.publish(self.angle_msg)
+            self.speed = 1000
+            self.current_lane = "LEFT"
+            self.go_yellow_obstacle()
 
     # dynamic obstacle drive
     def dynamic_obstacle_drive(self):
         # 멈췄다가 주행
         rospy.loginfo("MISSION : DYNAMIC")
         self.static_mission = False
-        self.speed_msg.data = 0
-        self.angle_msg.data = 0.5
-
-        self.speed_pub.publish(self.speed_msg)
-        self.angle_pub.publish(self.angle_msg)
+        self.speed = 0
+        self.directControl = 0.5
 
     ##제어
     def control_pub(self, ctrl = None): # speed,midrange,x,pos
