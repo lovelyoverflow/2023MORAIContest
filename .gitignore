@@ -58,7 +58,7 @@ CATKIN_IGNORE
 src/obstacle_detector/resources/*.bag
 src/obstacle_detector/resources/*.bag.active
 
-src/rosbag_editor/
+# src/rosbag_editor/
 .git
 
 # End of https://www.toptal.com/developers/gitignore/api/ros
