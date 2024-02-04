@@ -247,8 +247,8 @@ class LaneFollower:
         x = self.x
         line_len = 286
 
-        posl = int(poslf[0][3])
-        posr = int(posrf[0][3])
+        posl = int(np.sum(poslf[0][1:4])/3)
+        posr = int(np.sum(posrf[0][1:4])/3)
         fail_threshold = 3
         # print(posr[2])
         if max(poslf[2]) >= fail_threshold: posl = posr - line_len 
@@ -552,6 +552,7 @@ class LaneFollower:
 
         else:
             rospy.loginfo("NOT OBSTACLE !!!!!!")
+            self.go_forward()
 
     # static obstacle drive
     def static_obstacle_drive(self):
