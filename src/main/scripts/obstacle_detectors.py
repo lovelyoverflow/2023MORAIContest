@@ -34,11 +34,10 @@ class LidarReceiver():
 
 
     def lidar_callback(self, _data):
-        rospy.loginfo("lidar callback")
         
         # ROI: 장애물 감지 영역 설정
-        left_y = 0.2  # 차량 왼쪽 0.2 m
-        right_y = -0.2  # 차량 오른쪽 0.2 m
+        left_y = 0.17  # 차량 왼쪽 0.2 m
+        right_y = -0.17  # 차량 오른쪽 0.2 m
         front_x = 1 # 차량 앞 1.6 m
         back_x = 0   # 차량 뒤 0 m
         WARNING_CNT = 1
@@ -51,9 +50,9 @@ class LidarReceiver():
         for i in _data.circles:
             # ROI 내의 장애물 위치
             # rospy.loginfo("lidar callback2")
-            print(i.center.y)
-            if i.center.y < 0:
-                if i.center.x < 3:
+            # print(i.center.y)
+            if i.center.y < -0.25:
+                if i.center.x < 2.6:
                    if i.center.x >= 0.05:
                         self.obstacle_state.data = "RIGHT"
                         rospy.loginfo("RIGHT")
@@ -61,7 +60,7 @@ class LidarReceiver():
                         self.ylist.data = i.center.y
                         
             elif abs(i.center.y) < 0.25:
-                 if i.center.x < 3:
+                 if i.center.x < 2.6:
                    if i.center.x >= 0.05:
                         self.obstacle_state.data = "STRAIGHT"
                         rospy.loginfo("STRAIGHT")
@@ -69,7 +68,7 @@ class LidarReceiver():
                         self.ylist.data = i.center.y
                         
             else:
-                if i.center.x < 3:
+                if i.center.x < 2.6:
                    if i.center.x >= 0.05:
                         self.obstacle_state.data = "LEFT"
                         rospy.loginfo("LEFT")

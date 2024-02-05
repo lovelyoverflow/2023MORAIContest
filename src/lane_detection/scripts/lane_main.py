@@ -455,7 +455,7 @@ class LaneFollower:
         if 550 < posl < 650: #sliding window view stop range
             if self.stopline_toggle >= 10:
                 self.stopline_count += 1
-                print(self.stopline_count)
+                # print(self.stopline_count)
                 self.stopline_toggle = 0
         else: self.stopline_toggle += 1
 
@@ -477,7 +477,7 @@ class LaneFollower:
         #     else: ctrl = 0.5 # ctrl = self.cam.keycode
         # self.cmd_msg.data = ctrl #조향각 설정
         self.cmd_msg.data = 0.5 - pid
-        print(self.cmd_msg.data)
+        # print(self.cmd_msg.data)
         self.pub_steer.publish(self.cmd_msg.data)
         self.cmd_msg.data = self.speed
         self.pub.publish(self.cmd_msg.data)

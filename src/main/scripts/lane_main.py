@@ -77,6 +77,7 @@ class LaneFollower:
         self.DynamicDrive = False
 
         # static obstacle mission
+        self.changed_lane_toggle = False
         self.static_flag = False
         self.static_mission = False
         self.turn_left_flag = 0
@@ -247,9 +248,11 @@ class LaneFollower:
         poslf, posrf = self.l_lane, self.r_lane
         x = self.x
         line_len = 286
+        
+        print
 
-        posl = int(poslf[0][3])
-        posr = int(posrf[0][3])
+        posl = int(np.mean(poslf[0][1:4]))
+        posr = int(np.mean(posrf[0][1:3]))
         fail_threshold = 3
         # print(posr[2])
         if max(poslf[2]) >= fail_threshold: posl = posr - line_len 
@@ -294,10 +297,13 @@ class LaneFollower:
     def go_yellow_obstacle(self):
         lane = np.sum(self.yellow_warped, axis=0)
         if self.current_lane == "RIGHT":
-            lane_pos = 350
+            lane_pos = 140 #148
+            #self.current_lane = "LEFT"
+            
         elif self.current_lane == "LEFT":
-            lane_pos = 261
-
+            lane_pos = 261 #261
+            #self.current_lane = "RIGHT"
+        print(self.current_lane)
         posl = 0
         for i, p_cur in enumerate(lane):
             posl += (i*p_cur)
@@ -312,7 +318,7 @@ class LaneFollower:
             self.go_forward()
             self.start_time = time.time()
             self.sequence = 0
-            
+            self.midrange -= 100
             #3번째 지나고 출발
             # self.sequence = 12
             # self.speed = 500
@@ -331,9 +337,12 @@ class LaneFollower:
             # self.go_forward()
             self.obstacle_decide()
             elapsed_time = time.time() - self.start_time
-            if 8.5 <= elapsed_time:
+            if 6 <= elapsed_time and np.sum(self.yellow_warped) <= 0:
                 self.start_time = time.time()
                 self.sequence = 2
+                self.midrange += 100
+            
+            
 
         elif self.sequence == 2:
             print("seq 2")
@@ -387,7 +396,7 @@ class LaneFollower:
                 self.directControl = 0.3
             elif elapsed_time < 3.6:
                 self.directControl = 0.3
-            elif elapsed_time < 3.8:
+            elif elapsed_time < 3.7:
                 self.directControl = 0.35
             elif elapsed_time < 4.5:
                 self.directControl = 1
@@ -403,7 +412,7 @@ class LaneFollower:
             self.go_yellow()
             self.speed = 800
             print(np.sum(self.yellow_warped))
-            if np.sum(self.yellow_warped) <= 200000:
+            if np.sum(self.yellow_warped) <= 400000:
                 self.speed = 0
                 self.sequence = 7.5
                 
@@ -421,7 +430,7 @@ class LaneFollower:
             print("횡단보도 좌회전")
             elapsed_time = time.time() - float(self.start_time)
             if elapsed_time < 1:
-                self.directControl = 0.5
+                self.directControl = 0.45
             else:
                 self.directControl = None
                 self.go_left()
@@ -431,8 +440,8 @@ class LaneFollower:
                 
         elif self.sequence == 8.5:
             elapsed_time = time.time() - float(self.start_time)
-            self.directControl = 0.2
-            if elapsed_time >= 1:
+            self.directControl = 0.3
+            if elapsed_time >= 1.5:
                 self.directControl = None
                 self.start_time = time.time()
                 self.sequence = 9
@@ -522,10 +531,14 @@ class LaneFollower:
         if 550 < posl < 650: #sliding window view stop range
             if self.stopline_toggle >= 10:
                 self.stopline_count += 1
-                print(self.stopline_count)
+                # print(self.stopline_count)
                 self.stopline_toggle = 0
         else: self.stopline_toggle += 1
 
+    
+    def stop(self):
+        self.speed = 0
+        
     # def lane_change
     ####################### obstalce detector ########################
     def obstacle_decide(self):
@@ -534,28 +547,36 @@ class LaneFollower:
             self.lane_msg.data = 1
         elif self.current_lane == "LEFT":
             self.lane_msg.data = 2
-            
         ##################
         if not self.is_safe :
             self.y_list_sort = sorted(self.y_list, key=lambda x: x)
             rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
-            self.difference = self.y_list_sort[-1] - self.y_list_sort[0]
-            rospy.loginfo("넌나와야지")
             
+            if len(self.y_list) <= 15 :
+                self.stop()
+            
+            else :
+                while len(self.y_list) > 15:
+                    del self.y_list[0]
+                while len(self.y_list_sort) > 15:
+                    del self.y_list_sort[0]
             
             obstacle_t1 = rospy.get_time()
             
             if self.obstacle_state == "STRAIGHT" :
+                self.difference = self.y_list_sort[-1] - self.y_list_sort[0]
                 if self.difference >= 8 :
                     self.dynamic_flag = True
                     rospy.loginfo("DYNAMIC OBSTACLE")
                     self.dynamic_obstacle_drive()
-                    self.y_list_sort = []
+                    
+                    
                 else :
                     self.static_flag = True
                     rospy.loginfo("STATIC OBSTACLE")
                     self.static_obstacle_drive()
-                    self.y_list_sort = []
+                    
+                    
                 # self.static_flag = True
                 # rospy.loginfo("STATIC OBSTACLE")
                 #self.static_obstacle_drive()
@@ -568,7 +589,11 @@ class LaneFollower:
             #         self.dynamic_obstacle_drive()
             
 
-            
+            # elif self.obstacle_state == "RIGTH":
+                
+        
+            # elif self.obstacle_state == "LEFT":
+                
             # obstacle_t1 = rospy.get_time()
             # if self.obstacle_state == "LEFT" :
             #     rospy.loginfo("plzzzzzzzzzzzzzzzzzzzzzzzzz")
@@ -593,19 +618,28 @@ class LaneFollower:
             # else :
             #     pass
             else :
-                rospy.loginfo("DEFAULT 그냥 주행!!!!!!!!")
+                rospy.loginfo("그냥 주행!!!!!!!!")
                 self.directControl = None
+                self.current_lane = "RIGHT"
                 # self.is_safe = True
                 self.static_flag = False
                 self.dynamic_flag = False
-                self.speed = 1500
+                self.speed = 500
                 self.go_forward()
+                # self.just_drive()
+            
                 
         else:
             rospy.loginfo("NOT OBSTACLE !!!!!!")
             self.directControl = None
-            self.speed = 1500
+            self.speed = 1000
             self.go_forward()
+            # self.just_drive()
+            while len(self.y_list) > 10:
+                del self.y_list[0]
+            while len(self.y_list_sort) > 10:
+                del self.y_list_sort[0]
+           
                             
         # # dynamic_obstacle_drive
         # if self.dynamic_flag and not self.is_safe:
@@ -623,7 +657,9 @@ class LaneFollower:
             
             
             
-            
+    def just_drive(self):
+        self.current_lane = "RIGHT"
+        self.go_yellow_obstacle()
             
         # static obstacle drive
     def static_obstacle_drive(self):
@@ -634,6 +670,9 @@ class LaneFollower:
             self.static_t1 = rospy.get_time()
             self.static_mission = True
             self.static_flag = True
+            
+        self.speed = 500
+        self.current_lane = "LEFT"
 
         # if self.current_lane == "RIGHT":
         #    if t2 - self.static_t1 < 2.0 : #몇초동안 멈출지
@@ -641,17 +680,19 @@ class LaneFollower:
         #    else :
         #        if static_flag
 
-        if self.current_lane == "RIGHT":
-            self.speed = 1000
-            self.directControl = 0.3
-            self.current_lane = "LEFT"
-            self.go_yellow_obstacle()
+        # if self.current_lane == "RIGHT" and not self.changed_lane_toggle:
+        #     self.speed = 500
+        #     self.current_lane = "LEFT"
+        #     self.changed_lane_toggle = True
                 
 
-        elif self.current_lane == "LEFT":
-            self.speed = 1000
-            self.current_lane = "RIGHT"
-            self.go_yellow_obstacle()
+        # elif self.current_lane == "LEFT" and not self.changed_lane_toggle:
+        #     self.speed = 500
+        #     self.current_lane = "RIGHT"
+        #     self.changed_lane_toggle = True
+            
+        
+        self.go_yellow_obstacle()
 
     # dynamic obstacle drive
     def dynamic_obstacle_drive(self):
@@ -660,7 +701,6 @@ class LaneFollower:
         self.static_mission = False
         self.dynamic_mission = True
         self.speed = 0
-        self.directControl = 0.5
         
 
                 
@@ -771,7 +811,9 @@ class LaneFollower:
         if ctrl is None:
             if not isnan(pos):
                 ctrl = (((pos - midstart) * (1 - 0)) / (midend - midstart)) + 0
-            else: ctrl = 0.5 # ctrl = self.cam.keycode
+            else:
+                ctrl = 0.5 # ctrl = self.cam.keycode
+                print("directControl")
         self.steering_msg.data = ctrl #조향각 설정
         
         self.speed_msg.data = self.speed
