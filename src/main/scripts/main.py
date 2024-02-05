@@ -34,13 +34,15 @@ class NavigationClient():
 
         # 차선주행 관련 sub, pub
         self.car = LaneFollower()
-        
+        ################ 그니까 슬램할 때 라이다 콜백 실행안된느데 왜 됨???????????????????????
         # def _img_cb(msg):
         #     self.car.cv_img = self.car.bridge.compressed_imgmsg_to_cv2(msg)
         rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self._img_cb, queue_size=1)
         rospy.Subscriber("/lidar_warning", String, self.lidar_warning_callback)
         rospy.Subscriber("/object_condition", Float32, self.object_callback)
         rospy.Subscriber("/GetTrafficLightStatus", GetTrafficLightStatus, callback=self._traffic_cb, queue_size=1)
+        
+        rospy.Subscriber("/obstacle_pos", String, self.obstacle_pos_callback)
 
         self.current_lane_pub = rospy.Publisher("/current_lane", Float64, queue_size=1)  # 1 = right, 2 = left
         self.pub_speed = rospy.Publisher("/commands/motor/speed", Float64, queue_size=1)
@@ -50,6 +52,15 @@ class NavigationClient():
         self.sequence = 0
         self.start_time = rospy.Time.now()
         
+    def obstacle_pos_callback(self, msg):
+        if msg.data == "LEFT" :
+            self.car.obstacle_state = "LEFT"
+        elif msg.data =="RIGHT" :
+            self.car.obstacle_state = "RIGHT"
+        elif msg.data == "STRAIGHT" :
+            self.car.obstacle_state = "STRAIGHT"
+        else :
+            pass
     
     def _traffic_cb(self, msg):
             if msg.trafficLightStatus == 33:
@@ -73,12 +84,13 @@ class NavigationClient():
             pass
 
     def object_callback(self, msg):
-        if not self.car.dynamic_flag or len(self.car.y_list) <= 19:
-            self.car.y_list.append(msg.data)
-            if len(self.car.y_list) >= 21:
-                del self.car.y_list[0]
-        else:
-            rospy.logwarn("Unknown warning state!")
+        self.car.y_list.append(msg.data)
+        # if not self.car.dynamic_flag or len(self.car.y_list) <= 19:
+        #     self.car.y_list.append(msg.data)
+        #     if len(self.car.y_list) >= 21:
+        #         del self.car.y_list[0]
+        # else:
+        #     rospy.logwarn("Unknown warning state!")
             
     def run(self):
         if not self.killed:
