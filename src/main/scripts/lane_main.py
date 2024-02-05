@@ -550,11 +550,12 @@ class LaneFollower:
                     self.dynamic_flag = True
                     rospy.loginfo("DYNAMIC OBSTACLE")
                     self.dynamic_obstacle_drive()
+                    self.y_list_sort = []
                 else :
                     self.static_flag = True
                     rospy.loginfo("STATIC OBSTACLE")
                     self.static_obstacle_drive()
-                
+                    self.y_list_sort = []
                 # self.static_flag = True
                 # rospy.loginfo("STATIC OBSTACLE")
                 #self.static_obstacle_drive()
@@ -566,8 +567,7 @@ class LaneFollower:
             #         rospy.logwarn("DYNAMIC OBSTACLE")
             #         self.dynamic_obstacle_drive()
             
-            
-            
+
             
             # obstacle_t1 = rospy.get_time()
             # if self.obstacle_state == "LEFT" :
@@ -595,12 +595,16 @@ class LaneFollower:
             else :
                 rospy.loginfo("DEFAULT 그냥 주행!!!!!!!!")
                 self.directControl = None
-                self.is_safe = True
+                # self.is_safe = True
+                self.static_flag = False
+                self.dynamic_flag = False
+                self.speed = 1500
                 self.go_forward()
                 
         else:
             rospy.loginfo("NOT OBSTACLE !!!!!!")
             self.directControl = None
+            self.speed = 1500
             self.go_forward()
                             
         # # dynamic_obstacle_drive
@@ -637,15 +641,16 @@ class LaneFollower:
         #    else :
         #        if static_flag
 
-        if self.current_lane == "LEFT":
+        if self.current_lane == "RIGHT":
             self.speed = 1000
-            self.current_lane = "RIGHT"
+            self.directControl = 0.3
+            self.current_lane = "LEFT"
             self.go_yellow_obstacle()
                 
 
-        elif self.current_lane == "RIGHT":
+        elif self.current_lane == "LEFT":
             self.speed = 1000
-            self.current_lane = "LEFT"
+            self.current_lane = "RIGHT"
             self.go_yellow_obstacle()
 
     # dynamic obstacle drive
@@ -653,8 +658,10 @@ class LaneFollower:
         # 멈췄다가 주행
         rospy.loginfo("MISSION : DYNAMIC")
         self.static_mission = False
+        self.dynamic_mission = True
         self.speed = 0
         self.directControl = 0.5
+        
 
                 
             
