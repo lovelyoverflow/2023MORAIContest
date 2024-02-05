@@ -17,11 +17,11 @@
     <param name="min_scanner_range" value="0.05"/>
     <param name="max_scanner_range" value="10.0"/>
 
-    <param name="min_x_range"       value="-10.0"/>
-    <param name="max_x_range"       value="10.0"/>
-    <param name="min_y_range"       value="-10.0"/>
-    <param name="max_y_range"       value="10.0"/>
-
+    <param name="min_x_range"       value="-10.0"/> <!-- #10 -->
+    <param name="max_x_range"       value="10.0"/> <!-- #10 -->
+    <param name="min_y_range"       value="-10.0"/> <!-- #10 -->
+    <param name="max_y_range"       value="10.0"/> <!-- #10 -->
+ 
     <param name="fixed_frame_id"   value="base_link"/>
     <param name="target_frame_id"   value="laser_frame"/>
   </node>
@@ -36,7 +36,7 @@
     <param name="discard_converted_segments" value="true"/>
     <param name="transform_coordinates"  value="true"/>
 
-    <param name="min_group_points"     value="5"/>
+    <param name="min_group_points"     value="3"/>
 
     <param name="max_group_distance"   value="0.1"/>
     <param name="distance_proportion"  value="0.00628"/>
@@ -60,7 +60,7 @@
     <param name="process_rate_variance"   value="0.1"/>  
     <param name="measurement_variance"    value="1.0"/> 
 
-    <param name="frame_id"                value="ase_link"/>
+    <param name="frame_id"                value="base_link"/>
 
     <remap from="tracked_obstacles" to="obstacles"/>
   </node>
