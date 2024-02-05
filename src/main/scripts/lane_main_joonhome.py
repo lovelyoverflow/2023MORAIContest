@@ -574,3 +574,60 @@ class LaneFollower:
 #         cv2.imshow("lane", car.out_img)
 #         cv2.waitKey(1)
 #         car.rate.sleep()
+        
+
+    def obstacle_decide(self):
+        # rospy.loginfo("OBSTACLE DECIDE")
+        if self.current_lane == "RIGHT":
+            self.lane_msg.data = 1
+        elif self.current_lane == "LEFT":
+            self.lane_msg.data = 2
+            
+        ##################
+        # if not self.is_safe :
+        self.y_list_sort = sorted(self.y_list, key=lambda x: x)
+        rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
+        self.difference = self.y_list_sort[-1] - self.y_list_sort[0]
+            
+        if self.static_sequence == 0:
+            if self.obstacle_state == "STRAIGHT" :
+                if self.difference >= 8 :
+                    self.dynamic_flag = True
+                    rospy.loginfo("DYNAMIC OBSTACLE")
+                    rospy.loginfo("MISSION : DYNAMIC")
+                    self.static_mission = False
+                    self.speed = 0
+                else :
+                    self.static_flag += 1
+                    if self.static_flag >= 10: self.static_sequence = 1
+            else: 
+                rospy.loginfo("NOT OBSTACLE !!!!!!")
+                self.directControl = None
+                self.go_forward()
+
+        elif self.static_sequence == 1:
+            self.speed = 400
+            if self.current_lane == "LEFT":
+                self.current_lane = "RIGHT"
+
+            elif self.current_lane == "RIGHT":
+                self.current_lane = "LEFT"
+            obstacle_t1 = rospy.get_time()
+
+        elif self.static_sequence == 2:
+            t2 = rospy.get_time() - obstacle_t1
+            self.go_yellow_obstacle()
+            if t2 > 3:
+                if self.current_lane == "LEFT":
+                    self.current_lane = "RIGHT"
+    
+                elif self.current_lane == "RIGHT":
+                    self.current_lane = "LEFT"
+                self.static_sequence = 3
+                obstacle_t1 = rospy.get_time()
+
+        elif self.static_sequence == 3:
+            t2 = rospy.get_time() - obstacle_t1
+            self.go_yellow_obstacle()
+            if t2 > 2:
+                self.static_sequence = 0
