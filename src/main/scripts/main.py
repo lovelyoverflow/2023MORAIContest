@@ -113,8 +113,8 @@ class NavigationClient():
         self.pub_steer.publish(self.car.steering_msg.data)
         
         # cv2.circle(self.car.out_img, (int(self.car.pos), 550), 5, (255, 255, 255))
-        cv2.imshow("lane", self.car.yellow_warped)
-        cv2.waitKey(1)
+        # cv2.imshow("lane", self.car.yellow_warped)
+        # cv2.waitKey(1)
 
     def stop(self):
         self.client.cancle_all_goals()

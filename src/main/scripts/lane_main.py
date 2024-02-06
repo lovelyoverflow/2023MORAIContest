@@ -645,6 +645,8 @@ class LaneFollower:
             t2 = rospy.get_time() - self.obstacle_t1
             self.go_yellow_obstacle()
             if isnan(self.pos): self.go_right(offset=0)
+            if self.obstacle_state == "STRAIGHT_NEAR" :
+                self.static_sequence = 0
             if t2 > 3:
                 self.static_sequence = 0
                 # self.midrange += 100

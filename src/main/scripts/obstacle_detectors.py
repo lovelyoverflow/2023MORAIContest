@@ -39,54 +39,55 @@ class LidarReceiver():
         self.point_cnt = 0   # ROI 내 장애물 개수\
 
         data_sorted = sorted(_data.circles, key=lambda sort: sort.center.x)
-        for enu, i in enumerate(data_sorted):
-            if i.center.x <= 0:
-                del data_sorted[enu]
+        while len(data_sorted) != 0 and data_sorted[0].center.x < 0:
+            print("DELETING", data_sorted[0])
+            del data_sorted[0]
         
-        print(len(_data.circles))
+        while len(data_sorted) != 0 and data_sorted[0].center.y > 2:
+            print("DELETING", data_sorted[0])
+            del data_sorted[0]
+            
 
-        if len(_data.circles) == 0: 
+        if len(data_sorted) == 0: 
             rospy.loginfo("NONE")
             self.obstacle_state.data = "NONE"
             self.point_cnt += 1
-
-        i = data_sorted[0]
-
-        print("y=", i.center.y, " x=", i.center.x)
-
-        if i.center.y < -0.25:
-            if i.center.x < 1: #2.6:
-                if i.center.x >= 0.05:
-                    self.obstacle_state.data = "RIGHT"
-                    rospy.loginfo("RIGHT")
-                    self.point_cnt += 1
-                    self.ylist.data = i.center.y
-                    
-        elif abs(i.center.y) < 0.25:
-            if i.center.x < 2.6 and i.center.x > 1.2:
-                self.obstacle_state.data = "STRAIGHT_FAR"
-                rospy.loginfo("STRAIGHT_FAR")
-                self.point_cnt += 1
-                self.ylist.data = i.center.y
-            elif i.center.x < 1.2: #2.6:
-                if i.center.x >= 0.05:
-                    self.obstacle_state.data = "STRAIGHT_NEAR"
-                    rospy.loginfo("STRAIGHT_NEAR")
-                    self.point_cnt += 1
-                    self.ylist.data = i.center.y
-                
         else:
-            if i.center.x >= 0.05:
-                self.obstacle_state.data = "LEFT"
-                rospy.loginfo("LEFT")
-                self.point_cnt += 1
-                self.ylist.data = i.center.y
+            print("USING", data_sorted[0])
+            i = data_sorted[0]
+
+            print("y=", i.center.y, " x=", i.center.x)
+            
+            
+            self.point_cnt += 1
+            self.ylist.data = i.center.y
+
+            if i.center.y < -0.25:
+                if i.center.x < 1: #2.6:
+                    if i.center.x >= 0.05:
+                        self.obstacle_state.data = "RIGHT"
+                        rospy.loginfo("RIGHT")
+                        
+            elif abs(i.center.y) < 0.25:
+                if i.center.x < 2.6 and i.center.x > 1.2:
+                    self.obstacle_state.data = "STRAIGHT_FAR"
+                    rospy.loginfo("STRAIGHT_FAR")
+                elif i.center.x < 1.2: #2.6:
+                    if i.center.x >= 0.05:
+                        self.obstacle_state.data = "STRAIGHT_NEAR"
+                        rospy.loginfo("STRAIGHT_NEAR")
+                    
+            else:
+                if i.center.x >= 0.05:
+                    self.obstacle_state.data = "LEFT"
+                    rospy.loginfo("LEFT")
 
         if self.point_cnt >= WARNING_CNT:
             # rospy.loginfo("lidar callback warning")
             self.warning_pub.publish("WARNING")
             self.obstacle_pos_pub.publish(self.obstacle_state)
             self.object_pub.publish(self.ylist)
+            self.point_cnt = 0
             
         # 장애물이 일정 개수 미만이면 safe 상태
         else:
