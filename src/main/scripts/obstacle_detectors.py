@@ -40,11 +40,11 @@ class LidarReceiver():
 
         data_sorted = sorted(_data.circles, key=lambda sort: sort.center.x)
         while len(data_sorted) != 0 and data_sorted[0].center.x < 0:
-            print("DELETING", data_sorted[0])
+            #print("DELETING", data_sorted[0])
             del data_sorted[0]
         
         while len(data_sorted) != 0 and data_sorted[0].center.y > 2:
-            print("DELETING", data_sorted[0])
+            #print("DELETING", data_sorted[0])
             del data_sorted[0]
             
 
@@ -53,10 +53,10 @@ class LidarReceiver():
             self.obstacle_state.data = "NONE"
             self.point_cnt += 1
         else:
-            print("USING", data_sorted[0])
+            #print("USING", data_sorted[0])
             i = data_sorted[0]
 
-            print("y=", i.center.y, " x=", i.center.x)
+            #print("y=", i.center.y, " x=", i.center.x)
             
             
             self.point_cnt += 1

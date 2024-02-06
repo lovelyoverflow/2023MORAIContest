@@ -6,6 +6,7 @@
 import numpy as np
 import cv2
 import time
+import math
 import rospy
 from sensor_msgs.msg import CompressedImage
 from morai_msgs.msg import GetTrafficLightStatus
@@ -16,6 +17,8 @@ from std_msgs.msg import Float64
 
 from math import isnan
 import statistics
+
+from move_base_msgs.msg import MoveBaseGoal
 
 class LaneFollower:
     def __init__(self) -> None:
@@ -254,8 +257,6 @@ class LaneFollower:
         poslf, posrf = self.l_lane, self.r_lane
         x = self.x
         line_len = 286
-        
-        print
 
         posl = int(np.mean(poslf[0][1:4]))
         posr = int(np.mean(posrf[0][1:3]))
@@ -309,7 +310,7 @@ class LaneFollower:
         elif self.current_lane == "LEFT":
             lane_pos = 261 #261
             #self.current_lane = "RIGHT"
-        print(self.current_lane)
+        #print(self.current_lane)
         posl = 0
         for i, p_cur in enumerate(lane):
             posl += (i*p_cur)
@@ -317,7 +318,7 @@ class LaneFollower:
 
         self.pos = (posl - lane_pos) * 2 + self.x//2
 
-    def go_sequence(self):
+    def go_sequence(self, current_position=None):
         if self.sequence == -1:
             print("seq -1")
             self.speed = 1500
@@ -351,11 +352,14 @@ class LaneFollower:
             # self.go_forward()
             self.obstacle_decide()
             elapsed_time = time.time() - self.start_time
-            if self.yellowline_count >= 2:
+            #if self.yellowline_count >= 2:
+            if self.is_reached_before_ratary(current_position):
+                print("도착!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 self.start_time = time.time()
                 self.sequence = 2
                 self.midrange += 100
-            
+            else:
+                print("도착안함!!!!!!!!!!!!!!!!!!!!!!")
             
 
         elif self.sequence == 2:
@@ -575,33 +579,33 @@ class LaneFollower:
         ##################
         # if not self.is_safe :
         self.y_list_sort = sorted(self.y_list, key=lambda x: x)
-        rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
+        #rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
         while len(self.y_list) > 5:
             del self.y_list[0]
         while len(self.y_list_sort) > 5:
             del self.y_list_sort[0]
         self.difference = self.y_list_sort[-1] - self.y_list_sort[0]
-        print("obsticle_sequence =", self.static_sequence)
-        print("diff =", self.difference)
+        #print("obsticle_sequence =", self.static_sequence)
+        #print("diff =", self.difference)
         if self.static_sequence == 0:
-            print("in SEQUENCE IF", self.obstacle_state)
+            #print("in SEQUENCE IF", self.obstacle_state)
             if self.obstacle_state == "LEFT" or self.obstacle_state == "STRAIGHT_FAR":
                 if self.difference >= 0.2 :
                     self.dynamic_flag = True
-                    rospy.loginfo("DYNAMIC OBSTACLE")
-                    rospy.loginfo("MISSION : DYNAMIC")
+                    #rospy.loginfo("DYNAMIC OBSTACLE")
+                    #rospy.loginfo("MISSION : DYNAMIC")
                     self.static_mission = False
                     self.speed = 0
                 else :
-                    rospy.loginfo("NOT OBSTACLE !!!!!!")
+                    #rospy.loginfo("NOT OBSTACLE !!!!!!")
                     self.directControl = None
                     self.speed = 800
                     self.go_forward()
             elif self.obstacle_state == "STRAIGHT_NEAR" :
                 if self.difference >= 0.2 :
                     self.dynamic_flag = True
-                    rospy.loginfo("DYNAMIC OBSTACLE")
-                    rospy.loginfo("MISSION : DYNAMIC")
+                    #rospy.loginfo("DYNAMIC OBSTACLE")
+                    #rospy.loginfo("MISSION : DYNAMIC")
                     self.static_mission = False
                     self.speed = 0
                 else :
@@ -609,7 +613,7 @@ class LaneFollower:
                     self.static_flag += 1
                     if self.static_flag >= 1: self.static_sequence = 1
             else: 
-                rospy.loginfo("NOT OBSTACLE !!!!!!")
+                #rospy.loginfo("NOT OBSTACLE !!!!!!")
                 self.directControl = None
                 self.speed = 800
                 self.go_forward()
@@ -653,7 +657,7 @@ class LaneFollower:
     # # def lane_change
     # ####################### obstalce detector ########################
     # def obstacle_decide(self):
-    #     # rospy.loginfo("OBSTACLE DECIDE")
+    #     # #rospy.loginfo("OBSTACLE DECIDE")
     #     if self.current_lane == "RIGHT":
     #         self.lane_msg.data = 1
     #     elif self.current_lane == "LEFT":
@@ -661,7 +665,7 @@ class LaneFollower:
     #     ##################
     #     if not self.is_safe :
     #         self.y_list_sort = sorted(self.y_list, key=lambda x: x)
-    #         rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
+    #         #rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
             
     #         if len(self.y_list) <= 15 :
     #             self.stop()
@@ -678,18 +682,18 @@ class LaneFollower:
     #             self.difference = self.y_list_sort[-1] - self.y_list_sort[0]
     #             if self.difference >= 8 :
     #                 self.dynamic_flag = True
-    #                 rospy.loginfo("DYNAMIC OBSTACLE")
+    #                 #rospy.loginfo("DYNAMIC OBSTACLE")
     #                 self.dynamic_obstacle_drive()
                     
                     
     #             else :
     #                 self.static_flag = True
-    #                 rospy.loginfo("STATIC OBSTACLE")
+    #                 #rospy.loginfo("STATIC OBSTACLE")
     #                 self.static_obstacle_drive()
                     
                     
     #             # self.static_flag = True
-    #             # rospy.loginfo("STATIC OBSTACLE")
+    #             # #rospy.loginfo("STATIC OBSTACLE")
     #             #self.static_obstacle_drive()
     #         # elif self.obstacle_state == "LEFT":
     #         #     # obstacle_t2 = rospy.get_time()
@@ -707,7 +711,7 @@ class LaneFollower:
                 
     #         # obstacle_t1 = rospy.get_time()
     #         # if self.obstacle_state == "LEFT" :
-    #         #     rospy.loginfo("plzzzzzzzzzzzzzzzzzzzzzzzzz")
+    #         #     #rospy.loginfo("plzzzzzzzzzzzzzzzzzzzzzzzzz")
     #         #     obstacle_t2 = rospy.get_time()
     #         #     time.sleep(0.7)
     #         #     if obstacle_t2 - obstacle_t1 <= 5 :
@@ -724,12 +728,12 @@ class LaneFollower:
                         
     #         # elif self.obstacle_state == "STRAIGHT" : 
     #         #     self.static_flag = True
-    #         #     rospy.loginfo("STATIC OBSTACLE")
+    #         #     #rospy.loginfo("STATIC OBSTACLE")
     #         #     self.static_obstacle_drive()
     #         # else :
     #         #     pass
     #         else :
-    #             rospy.loginfo("그냥 주행!!!!!!!!")
+    #             #rospy.loginfo("그냥 주행!!!!!!!!")
     #             self.directControl = None
     #             self.current_lane = "RIGHT"
     #             # self.is_safe = True
@@ -741,7 +745,7 @@ class LaneFollower:
             
                 
     #     else:
-    #         rospy.loginfo("NOT OBSTACLE !!!!!!")
+    #         #rospy.loginfo("NOT OBSTACLE !!!!!!")
     #         self.directControl = None
     #         self.speed = 1000
     #         self.go_forward()
@@ -760,7 +764,7 @@ class LaneFollower:
 
         # # static_obstacle_drive
         # elif self.static_flag and not self.is_safe :  # true
-        #     rospy.loginfo("STATIC OBSTACLE")
+        #     #rospy.loginfo("STATIC OBSTACLE")
         #     self.static_obstacle_drive()
         
 
@@ -775,7 +779,7 @@ class LaneFollower:
         # static obstacle drive
     def static_obstacle_drive(self):
         # 왼쪽으로 각도 틀고 원래 차선으로 복귀 후 주행
-        rospy.loginfo("MISSION : STATIC")
+        #rospy.loginfo("MISSION : STATIC")
         t2 = rospy.get_time()
         if self.static_flag:
             self.static_t1 = rospy.get_time()
@@ -808,7 +812,7 @@ class LaneFollower:
     # dynamic obstacle drive
     def dynamic_obstacle_drive(self):
         # 멈췄다가 주행
-        rospy.loginfo("MISSION : DYNAMIC")
+        #rospy.loginfo("MISSION : DYNAMIC")
         self.static_mission = False
         self.dynamic_mission = True
         self.speed = 0
@@ -823,13 +827,13 @@ class LaneFollower:
     #     if not self.is_safe:
 
     #         self.y_list_sort = sorted(self.y_list, key=lambda x: x)
-    #         rospy.loginfo("Y_LIST{}".format(self.y_list))
+    #         #rospy.loginfo("Y_LIST{}".format(self.y_list))
 
     #         # dynamic_obstacle_drive
     #         if len(self.y_list) <= 19:
     #             self.stop()
     #             self.go_forward()
-    #             # rospy.loginfo("obstacle_stop, dynamic_flag = {}", format(self.dynamic_flag))
+    #             # #rospy.loginfo("obstacle_stop, dynamic_flag = {}", format(self.dynamic_flag))
 
     #         # dynamic ostacle loginfo
     #         elif abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])) >= 0.17 or \
@@ -838,9 +842,9 @@ class LaneFollower:
     #         #     self.static_flag = False
     #             # self.y_list.clear
             
-    #             # rospy.loginfo("dynamic")
-    #             # rospy.loginfo(self.y_list_sort)
-    #             # rospy.loginfo(abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])))
+    #             # #rospy.loginfo("dynamic")
+    #             # #rospy.loginfo(self.y_list_sort)
+    #             # #rospy.loginfo(abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])))
 
     #         # static obstacle loginfo
     #         else:
@@ -849,9 +853,9 @@ class LaneFollower:
     #         #         self.static_flag = True
     #         #         self.dynamic_flag = False
     #         #         self.static_cnt = 0
-    #             # rospy.loginfo("static")
-    #             # rospy.loginfo(self.y_list_sort)
-    #             # rospy.loginfo(abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])))
+    #             # #rospy.loginfo("static")
+    #             # #rospy.loginfo(self.y_list_sort)
+    #             # #rospy.loginfo(abs(statistics.mean(self.y_list_sort[0:1]) - statistics.mean(self.y_list_sort[-2:-1])))
 
     #         # dynamic_obstacle_drive
     #         if self.dynamic_flag and not self.is_safe:
@@ -861,19 +865,19 @@ class LaneFollower:
 
     #         # static_obstacle_drive
     #         elif self.static_flag:  # true
-    #             rospy.loginfo("STATIC OBSTACLE")
+    #             #rospy.loginfo("STATIC OBSTACLE")
     #             self.static_obstacle_drive()
     #         # if the car is driving depending on "right" window
 
     #     else:
-    #         rospy.loginfo("NOT OBSTACLE !!!!!!")
+    #         #rospy.loginfo("NOT OBSTACLE !!!!!!")
     #         self.directControl = None
     #         self.go_forward()
 
     # # static obstacle drive
     # def static_obstacle_drive(self):
     #     # 왼쪽으로 각도 틀고 원래 차선으로 복귀 후 주행
-    #     rospy.loginfo("MISSION : STATIC")
+    #     #rospy.loginfo("MISSION : STATIC")
     #     t2 = rospy.get_time()
     #     if not self.static_flag:
     #         self.static_t1 = rospy.get_time()
@@ -946,6 +950,27 @@ class LaneFollower:
         cv2.imshow("s", s)
         cv2.imshow("v", v)
         cv2.imshow("Image", img)
+        
+    def is_reached_before_ratary(self, current_position):
+        #================= 교차로 들어가기 전 웨이포인트 =========================
+        waypoint_rotary = MoveBaseGoal()
+        waypoint_rotary.target_pose.header.frame_id = "map"
+        waypoint_rotary.target_pose.pose.position.x = 31.404663415273333
+        waypoint_rotary.target_pose.pose.position.y = 1.0858890951974947
+        waypoint_rotary.target_pose.pose.orientation.w = 0.002997711827324864
+        waypoint_rotary.target_pose.pose.orientation.z = -0.9999955068518059
+        #=======================================================================
+        
+        if current_position is None:
+            return False
+        
+        distance = math.sqrt((current_position.pose.pose.position.x - waypoint_rotary.target_pose.pose.position.x) ** 2 + \
+        (current_position.pose.pose.position.y - waypoint_rotary.target_pose.pose.position.y) ** 2)
+        
+        if abs(distance) < 0.5:
+            return True
+        
+        return False
 
     ## ROS 관련 메서드
     # def subscribe(self):

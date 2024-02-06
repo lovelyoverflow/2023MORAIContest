@@ -2,6 +2,7 @@
 import cv2
 import os
 import rospy
+import math
 import actionlib
 
 from lane_main import LaneFollower
@@ -12,6 +13,8 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import CompressedImage
 from morai_msgs.msg import GetTrafficLightStatus
 from std_msgs.msg import Int32, String, Float32, Float64
+from geometry_msgs.msg import PoseWithCovarianceStamped
+
 #zfrom obstacle_detector.msg import Obstacles
 
 class NavigationClient():
@@ -31,7 +34,7 @@ class NavigationClient():
         self.waypoint_1.target_pose.pose.orientation.z = 0.016162256933356937
         
         self.goal_list.append(self.waypoint_1)
-
+        
         # 차선주행 관련 sub, pub
         self.car = LaneFollower()
         ################ 그니까 슬램할 때 라이다 콜백 실행안된느데 왜 됨???????????????????????
@@ -41,6 +44,7 @@ class NavigationClient():
         rospy.Subscriber("/lidar_warning", String, self.lidar_warning_callback)
         rospy.Subscriber("/object_condition", Float32, self.object_callback)
         rospy.Subscriber("/GetTrafficLightStatus", GetTrafficLightStatus, callback=self._traffic_cb, queue_size=1)
+        rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, callback=self.amcl_callback, queue_size=1)
         
         rospy.Subscriber("/obstacle_pos", String, self.obstacle_pos_callback)
 
@@ -51,6 +55,7 @@ class NavigationClient():
         self.slam = False
         self.sequence = 0
         self.start_time = rospy.Time.now()
+        self.current_position = None
         
     def obstacle_pos_callback(self, msg):
         self.car.obstacle_state = msg.data
@@ -61,7 +66,10 @@ class NavigationClient():
             else:
                 # print("Status:", msg.trafficLightStatus)
                 self.car.left_traffic = False    
-                
+    
+    def amcl_callback(self, msg):
+        self.current_position = msg
+    
     def _img_cb(self, msg):
             self.car.cv_img = self.bridge.compressed_imgmsg_to_cv2(msg)
 
@@ -71,7 +79,7 @@ class NavigationClient():
             self.car.is_safe = True
         elif self.car.lidar_warning == "WARNING":
             self.car.is_safe = False
-            rospy.loginfo("WARNING !! ")
+            #rospy.loginfo("WARNING !! ")
         else:
             # rospy.loginfo("엥?????????????????????//")
             pass
@@ -84,12 +92,12 @@ class NavigationClient():
         #         del self.car.y_list[0]
         # else:
         #     rospy.logwarn("Unknown warning state!")
-            
+    
     def run(self):
         if not self.killed:
             os.system("rosnode kill /throttle_interpolator")
             self.killed = True
-                
+        
         while self.car.cv_img is None: 
             self.car.rate.sleep()
             
@@ -103,7 +111,7 @@ class NavigationClient():
         self.car.sliding_window()
 
         #판단
-        self.car.go_sequence()
+        self.car.go_sequence(self.current_position)
         self.car.stop_line()
 
         #제어
@@ -125,10 +133,10 @@ def main():
     rate = rospy.Rate(30)
     
     nc.client.send_goal(nc.goal_list[nc.sequence])
+    nc.client.wait_for_result()
     while not rospy.is_shutdown():
         if nc.client.get_state() != GoalStatus.SUCCEEDED:
             continue
-
         nc.run()
         rate.sleep()
 

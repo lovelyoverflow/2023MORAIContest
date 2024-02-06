@@ -19,6 +19,7 @@
  */
 
 /* Author: Brian Gerkey */
+#include <math.h>
 
 #include <algorithm>
 #include <vector>
@@ -79,6 +80,10 @@
 #define NEW_UNIFORM_SAMPLING 1
 
 using namespace amcl;
+
+double temp_x = 0.0;
+double temp_y = 0.0;
+double temp_t = 0.0;
 
 // Pose hypothesis
 typedef struct
@@ -159,6 +164,7 @@ class AmclNode
     // Pose-generating function used to uniformly distribute particles over
     // the map
     static pf_vector_t uniformPoseGenerator(void* arg);
+    static pf_vector_t gaussianPoseGenerator(void* arg);
 #if NEW_UNIFORM_SAMPLING
     static std::vector<std::pair<int,int> > free_space_indices;
 #endif
@@ -181,13 +187,13 @@ class AmclNode
     void updatePoseFromServer();
     void applyInitialPose();
 
-    //parameter for which odom to use
+    //parameter for what odom to use
     std::string odom_frame_id_;
 
     //paramater to store latest odom pose
     geometry_msgs::PoseStamped latest_odom_pose_;
 
-    //parameter for which base to use
+    //parameter for what base to use
     std::string base_frame_id_;
     std::string global_frame_id_;
 
@@ -284,8 +290,6 @@ class AmclNode
     double init_cov_[3];
     laser_model_t laser_model_type_;
     bool tf_broadcast_;
-    bool force_update_after_initialpose_;
-    bool force_update_after_set_map_;
     bool selective_resampling_;
 
     void reconfigureCB(amcl::AMCLConfig &config, uint32_t level);
@@ -383,7 +387,7 @@ AmclNode::AmclNode() :
   private_nh_.param("odom_alpha3", alpha3_, 0.2);
   private_nh_.param("odom_alpha4", alpha4_, 0.2);
   private_nh_.param("odom_alpha5", alpha5_, 0.2);
-  
+
   private_nh_.param("do_beamskip", do_beamskip_, false);
   private_nh_.param("beam_skip_distance", beam_skip_distance_, 0.5);
   private_nh_.param("beam_skip_threshold", beam_skip_threshold_, 0.3);
@@ -447,8 +451,6 @@ AmclNode::AmclNode() :
   private_nh_.param("recovery_alpha_slow", alpha_slow_, 0.001);
   private_nh_.param("recovery_alpha_fast", alpha_fast_, 0.1);
   private_nh_.param("tf_broadcast", tf_broadcast_, true);
-  private_nh_.param("force_update_after_initialpose", force_update_after_initialpose_, false);
-  private_nh_.param("force_update_after_set_map", force_update_after_set_map_, false);
 
   // For diagnostics
   private_nh_.param("std_warn_level_x", std_warn_level_x_, 0.2);
@@ -476,14 +478,14 @@ AmclNode::AmclNode() :
 
   pose_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 2, true);
   particlecloud_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particlecloud", 2, true);
-  global_loc_srv_ = nh_.advertiseService("global_localization", 
+  global_loc_srv_ = nh_.advertiseService("global_localization",
 					 &AmclNode::globalLocalizationCallback,
                                          this);
   nomotion_update_srv_= nh_.advertiseService("request_nomotion_update", &AmclNode::nomotionUpdateCallback, this);
   set_map_srv_= nh_.advertiseService("set_map", &AmclNode::setMapCallback, this);
 
   laser_scan_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>(nh_, scan_topic_, 100);
-  laser_scan_filter_ = 
+  laser_scan_filter_ =
           new tf2_ros::MessageFilter<sensor_msgs::LaserScan>(*laser_scan_sub_,
                                                              *tf_,
                                                              odom_frame_id_,
@@ -507,7 +509,7 @@ AmclNode::AmclNode() :
 
   // 15s timer to warn on lack of receipt of laser scans, #5209
   laser_check_interval_ = ros::Duration(15.0);
-  check_laser_timer_ = nh_.createTimer(laser_check_interval_, 
+  check_laser_timer_ = nh_.createTimer(laser_check_interval_,
                                        boost::bind(&AmclNode::checkLaserReceived, this, _1));
 
   diagnosic_updater_.setHardwareID("None");
@@ -588,13 +590,11 @@ void AmclNode::reconfigureCB(AMCLConfig &config, uint32_t level)
   alpha_slow_ = config.recovery_alpha_slow;
   alpha_fast_ = config.recovery_alpha_fast;
   tf_broadcast_ = config.tf_broadcast;
-  force_update_after_initialpose_ = config.force_update_after_initialpose;
-  force_update_after_set_map_ = config.force_update_after_set_map;
 
-  do_beamskip_= config.do_beamskip; 
-  beam_skip_distance_ = config.beam_skip_distance; 
-  beam_skip_threshold_ = config.beam_skip_threshold; 
-  
+  do_beamskip_= config.do_beamskip;
+  beam_skip_distance_ = config.beam_skip_distance;
+  beam_skip_threshold_ = config.beam_skip_threshold;
+
   // Clear queued laser objects so that their parameters get updated
   lasers_.clear();
   lasers_update_.clear();
@@ -604,14 +604,14 @@ void AmclNode::reconfigureCB(AMCLConfig &config, uint32_t level)
   {
     pf_free( pf_ );
     pf_ = NULL;
-  }	
+  }
   pf_ = pf_alloc(min_particles_, max_particles_,
                  alpha_slow_, alpha_fast_,
                  (pf_init_model_fn_t)AmclNode::uniformPoseGenerator,
                  (void *)map_);
   pf_set_selective_resampling(pf_, selective_resampling_);
-  pf_err_ = config.kld_err; 
-  pf_z_ = config.kld_z; 
+  pf_err_ = config.kld_err;
+  pf_z_ = config.kld_z;
   pf_->pop_err = pf_err_;
   pf_->pop_z = pf_z_;
 
@@ -643,8 +643,8 @@ void AmclNode::reconfigureCB(AMCLConfig &config, uint32_t level)
   else if(laser_model_type_ == LASER_MODEL_LIKELIHOOD_FIELD_PROB){
     ROS_INFO("Initializing likelihood field model; this can take some time on large maps...");
     laser_->SetModelLikelihoodFieldProb(z_hit_, z_rand_, sigma_hit_,
-					laser_likelihood_max_dist_, 
-					do_beamskip_, beam_skip_distance_, 
+					laser_likelihood_max_dist_,
+					do_beamskip_, beam_skip_distance_,
 					beam_skip_threshold_, beam_skip_error_threshold_);
     ROS_INFO("Done initializing likelihood field model with probabilities.");
   }
@@ -660,7 +660,7 @@ void AmclNode::reconfigureCB(AMCLConfig &config, uint32_t level)
   global_frame_id_ = stripSlash(config.global_frame_id);
 
   delete laser_scan_filter_;
-  laser_scan_filter_ = 
+  laser_scan_filter_ =
           new tf2_ros::MessageFilter<sensor_msgs::LaserScan>(*laser_scan_sub_,
                                                              *tf_,
                                                              odom_frame_id_,
@@ -702,7 +702,7 @@ void AmclNode::runFromBag(const std::string &in_bag_fn, bool trigger_global_loca
         break;
       }
     }
-    ROS_INFO("Waiting for the map...");
+    ROS_INFO("Waiting for map...");
     ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(1.0));
   }
 
@@ -782,11 +782,11 @@ void AmclNode::savePoseToServer()
   private_nh_.setParam("initial_pose_x", map_pose.getOrigin().x());
   private_nh_.setParam("initial_pose_y", map_pose.getOrigin().y());
   private_nh_.setParam("initial_pose_a", yaw);
-  private_nh_.setParam("initial_cov_xx", 
+  private_nh_.setParam("initial_cov_xx",
                                   last_published_pose.pose.covariance[6*0+0]);
-  private_nh_.setParam("initial_cov_yy", 
+  private_nh_.setParam("initial_cov_yy",
                                   last_published_pose.pose.covariance[6*1+1]);
-  private_nh_.setParam("initial_cov_aa", 
+  private_nh_.setParam("initial_cov_aa",
                                   last_published_pose.pose.covariance[6*5+5]);
 }
 
@@ -803,7 +803,7 @@ void AmclNode::updatePoseFromServer()
   private_nh_.param("initial_pose_x", tmp_pos, init_pose_[0]);
   if(!std::isnan(tmp_pos))
     init_pose_[0] = tmp_pos;
-  else 
+  else
     ROS_WARN("ignoring NAN in initial pose X position");
   private_nh_.param("initial_pose_y", tmp_pos, init_pose_[1]);
   if(!std::isnan(tmp_pos))
@@ -829,10 +829,10 @@ void AmclNode::updatePoseFromServer()
   if(!std::isnan(tmp_pos))
     init_cov_[2] = tmp_pos;
   else
-    ROS_WARN("ignoring NAN in initial covariance AA");	
+    ROS_WARN("ignoring NAN in initial covariance AA");
 }
 
-void 
+void
 AmclNode::checkLaserReceived(const ros::TimerEvent& event)
 {
   ros::Duration d = ros::Time::now() - last_laser_received_ts_;
@@ -883,7 +883,7 @@ AmclNode::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
            msg.info.width,
            msg.info.height,
            msg.info.resolution);
-  
+
   if(msg.header.frame_id != global_frame_id_)
     ROS_WARN("Frame_id of map received:'%s' doesn't match global_frame_id:'%s'. This could cause issues with reading published topics",
              msg.header.frame_id.c_str(),
@@ -944,8 +944,8 @@ AmclNode::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
   else if(laser_model_type_ == LASER_MODEL_LIKELIHOOD_FIELD_PROB){
     ROS_INFO("Initializing likelihood field model; this can take some time on large maps...");
     laser_->SetModelLikelihoodFieldProb(z_hit_, z_rand_, sigma_hit_,
-					laser_likelihood_max_dist_, 
-					do_beamskip_, beam_skip_distance_, 
+					laser_likelihood_max_dist_,
+					do_beamskip_, beam_skip_distance_,
 					beam_skip_threshold_, beam_skip_error_threshold_);
     ROS_INFO("Done initializing likelihood field model.");
   }
@@ -982,7 +982,7 @@ AmclNode::freeMapDependentMemory()
 
 /**
  * Convert an OccupancyGrid map message into the internal
- * representation. This allocates a map_t and returns it.
+ * representation.  This allocates a map_t and returns it.
  */
 map_t*
 AmclNode::convertMap( const nav_msgs::OccupancyGrid& map_msg )
@@ -1034,7 +1034,7 @@ AmclNode::getOdomPose(geometry_msgs::PoseStamped& odom_pose,
   {
     this->tf_->transform(ident, odom_pose, odom_frame_id_);
   }
-  catch(const tf2::TransformException& e)
+  catch(tf2::TransformException e)
   {
     ROS_WARN("Failed to compute odom pose, skipping scan (%s)", e.what());
     return false;
@@ -1058,6 +1058,8 @@ AmclNode::uniformPoseGenerator(void* arg)
   p.v[0] = MAP_WXGX(map, free_point.first);
   p.v[1] = MAP_WYGY(map, free_point.second);
   p.v[2] = drand48() * 2 * M_PI - M_PI;
+  ROS_INFO("Generating new uniform sample");
+
 #else
   double min_x, max_x, min_y, max_y;
 
@@ -1068,7 +1070,7 @@ AmclNode::uniformPoseGenerator(void* arg)
 
   pf_vector_t p;
 
-  ROS_DEBUG("Generating new uniform sample");
+  ROS_INFO("Generating new uniform sample");
   for(;;)
   {
     p.v[0] = min_x + drand48() * (max_x - min_x);
@@ -1102,7 +1104,7 @@ AmclNode::globalLocalizationCallback(std_srvs::Empty::Request& req,
 }
 
 // force nomotion updates (amcl updating without requiring motion)
-bool 
+bool
 AmclNode::nomotionUpdateCallback(std_srvs::Empty::Request& req,
                                      std_srvs::Empty::Response& res)
 {
@@ -1117,10 +1119,6 @@ AmclNode::setMapCallback(nav_msgs::SetMap::Request& req,
 {
   handleMapMessage(req.map);
   handleInitialPoseMessage(req.initial_pose);
-  if (force_update_after_set_map_)
-  {
-    m_force_update = true;
-  }
   res.success = true;
   return true;
 }
@@ -1154,7 +1152,7 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
     {
       this->tf_->transform(ident, laser_pose, base_frame_id_);
     }
-    catch(const tf2::TransformException& e)
+    catch(tf2::TransformException& e)
     {
       ROS_ERROR("Couldn't transform from %s to %s, "
                 "even though the message notifier is in use",
@@ -1277,7 +1275,7 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
       tf_->transform(min_q, min_q, base_frame_id_);
       tf_->transform(inc_q, inc_q, base_frame_id_);
     }
-    catch(const tf2::TransformException& e)
+    catch(tf2::TransformException& e)
     {
       ROS_WARN("Unable to transform min/max laser angles into base frame: %s",
                e.what());
@@ -1302,12 +1300,6 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
       range_min = std::max(laser_scan->range_min, (float)laser_min_range_);
     else
       range_min = laser_scan->range_min;
-
-    if(ldata.range_max <= 0.0 || range_min < 0.0) {
-      ROS_ERROR("range_max or range_min from laser is negative! ignore this message.");
-      return; // ignore this.
-    }
-
     // The AMCLLaserData destructor will free this memory
     ldata.ranges = new double[ldata.range_count][2];
     ROS_ASSERT(ldata.ranges);
@@ -1317,8 +1309,6 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
       // readings to max range.
       if(laser_scan->ranges[i] <= range_min)
         ldata.ranges[i][0] = ldata.range_max;
-      else if(laser_scan->ranges[i] > ldata.range_max)
-        ldata.ranges[i][0] = std::numeric_limits<decltype(ldata.range_max)>::max();
       else
         ldata.ranges[i][0] = laser_scan->ranges[i];
       // Compute bearing
@@ -1332,6 +1322,38 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
 
     pf_odom_pose_ = pose;
 
+    /*****************************/
+    pf_sample_set_t* set_tmp = pf_->sets + pf_->current_set;
+    ROS_DEBUG("Num samples: %d\n", set_tmp->sample_count);
+    ROS_INFO("Num samples: %d\n", set_tmp->sample_count);
+
+    double sum_weight = 0;
+    double avg_weight = 0;
+    double h_weight = 0;
+    double l_weight = 1;
+    for(int i=0; i<set_tmp->sample_count; i++){
+      sum_weight += set_tmp->samples[i].weight;
+
+      if(set_tmp->samples[i].weight > h_weight)  h_weight = set_tmp->samples[i].weight;
+      if(set_tmp->samples[i].weight < l_weight)  l_weight = set_tmp->samples[i].weight;
+
+      // if(i%100 == 0)  ROS_INFO("weight : %f", set->samples[i].weight);
+    }
+    avg_weight = sum_weight/set_tmp->sample_count;
+    ROS_INFO("avg weight: %f\n", avg_weight);
+    ROS_INFO("h_weight: %f\n", h_weight);
+    ROS_INFO("l_weight: %f\n", l_weight);
+    ROS_INFO("w_fast : %f, w_slow : %f\n", pf_->w_fast, pf_->w_slow);
+
+    double w_diff;
+    w_diff = 1.0 - (pf_->w_fast / pf_->w_slow);
+
+    ROS_INFO("w_diff : %f\n", w_diff);
+    /******************************/
+
+    pf_->random_pose_fn = (pf_init_model_fn_t)AmclNode::gaussianPoseGenerator;
+    pf_->w_fast = 9.5;
+    pf_->w_slow = 10.0;
     // Resample the particles
     if(!(++resample_count_ % resample_interval_))
     {
@@ -1340,7 +1362,29 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
     }
 
     pf_sample_set_t* set = pf_->sets + pf_->current_set;
-    ROS_DEBUG("Num samples: %d\n", set->sample_count);
+
+
+    // pf_sample_set_t* set = pf_->sets + pf_->current_set;
+    // ROS_DEBUG("Num samples: %d\n", set->sample_count);
+    // ROS_INFO("Num samples: %d\n", set->sample_count);
+    //
+    // double sum_weight = 0;
+    // double avg_weight = 0;
+    // double h_weight = 0;
+    // double l_weight = 1;
+    // for(int i=0; i<set->sample_count; i++){
+    //   sum_weight += set->samples[i].weight;
+    //
+    //   if(set->samples[i].weight > h_weight)  h_weight = set->samples[i].weight;
+    //   if(set->samples[i].weight < l_weight)  l_weight = set->samples[i].weight;
+    //
+    //   // if(i%100 == 0)  ROS_INFO("weight : %f", set->samples[i].weight);
+    // }
+    // avg_weight = sum_weight/set->sample_count;
+    // ROS_INFO("avg weight: %f\n", avg_weight);
+    // // ROS_INFO("h_weight: %f\n", h_weight);
+    // // ROS_INFO("l_weight: %f\n", l_weight);
+
 
     // Publish the resulting cloud
     // TODO: set maximum rate for publishing
@@ -1395,10 +1439,16 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
 
     if(max_weight > 0.0)
     {
-      ROS_DEBUG("Max weight pose: %.3f %.3f %.3f",
+      ROS_INFO("Max weight pose and weight : %.3f %.3f %.3f %.3f",
                 hyps[max_weight_hyp].pf_pose_mean.v[0],
                 hyps[max_weight_hyp].pf_pose_mean.v[1],
-                hyps[max_weight_hyp].pf_pose_mean.v[2]);
+                hyps[max_weight_hyp].pf_pose_mean.v[2],
+                hyps[max_weight_hyp].weight);
+
+      temp_x = hyps[max_weight_hyp].pf_pose_mean.v[0];
+      temp_y = hyps[max_weight_hyp].pf_pose_mean.v[1];
+      temp_t = hyps[max_weight_hyp].pf_pose_mean.v[2];
+
 
       /*
          puts("");
@@ -1469,7 +1519,7 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
 
         this->tf_->transform(tmp_tf_stamped, odom_to_map, odom_frame_id_);
       }
-      catch(const tf2::TransformException&)
+      catch(tf2::TransformException)
       {
         ROS_DEBUG("Failed to subtract base to odom transform");
         return;
@@ -1532,10 +1582,6 @@ void
 AmclNode::initialPoseReceived(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
   handleInitialPoseMessage(*msg);
-  if (force_update_after_initialpose_)
-  {
-    m_force_update = true;
-  }
 }
 
 void
@@ -1561,12 +1607,13 @@ AmclNode::handleInitialPoseMessage(const geometry_msgs::PoseWithCovarianceStampe
   geometry_msgs::TransformStamped tx_odom;
   try
   {
+    ros::Time now = ros::Time::now();
     // wait a little for the latest tf to become available
     tx_odom = tf_->lookupTransform(base_frame_id_, msg.header.stamp,
                                    base_frame_id_, ros::Time::now(),
                                    odom_frame_id_, ros::Duration(0.5));
   }
-  catch(const tf2::TransformException& e)
+  catch(tf2::TransformException e)
   {
     // If we've never sent a transform, then this is normal, because the
     // global_frame_id_ frame doesn't exist.  We only care about in-time
@@ -1653,4 +1700,53 @@ AmclNode::standardDeviationDiagnostics(diagnostic_updater::DiagnosticStatusWrapp
   {
     diagnostic_status.summary(diagnostic_msgs::DiagnosticStatus::OK, "OK");
   }
+}
+
+double gaussianRandom(double average, double stdev) {
+  double v1, v2, s, temp;
+
+  do {
+    v1 =  2 * ((double) rand() / RAND_MAX) - 1;      // -1.0 ~ 1.0 까지의 값
+    v2 =  2 * ((double) rand() / RAND_MAX) - 1;      // -1.0 ~ 1.0 까지의 값
+    s = v1 * v1 + v2 * v2;
+  } while (s >= 1 || s == 0);
+
+  s = sqrt( (-2 * log(s)) / s );
+
+  temp = v1 * s;
+  temp = (stdev * temp) + average;
+
+  return temp;
+}
+
+pf_vector_t
+AmclNode::gaussianPoseGenerator(void* arg)
+{
+  map_t* map = (map_t*)arg;
+// #if NEW_UNIFORM_SAMPLING
+//   unsigned int rand_index = drand48() * free_space_indices.size();
+//   std::pair<int,int> free_point = free_space_indices[rand_index];
+//   pf_vector_t p;
+//   p.v[0] = MAP_WXGX(map, free_point.first);
+//   p.v[1] = MAP_WYGY(map, free_point.second);
+//   p.v[2] = drand48() * 2 * M_PI - M_PI;
+// #else
+
+  pf_vector_t p;
+
+  // ROS_INFO("Generating new gaussian sample");
+  for(;;)
+  {
+    p.v[0] = temp_x + gaussianRandom(0, 0.5);
+    p.v[1] = temp_y + gaussianRandom(0, 0.5);
+    p.v[2] = temp_t + gaussianRandom(0, 0.1) * 2 * 3.141592 * 0.05;
+    // Check that it's a free cell
+    int i,j;
+    i = MAP_GXWX(map, p.v[0]);
+    j = MAP_GYWY(map, p.v[1]);
+    if(MAP_VALID(map,i,j) && (map->cells[MAP_INDEX(map,i,j)].occ_state == -1))
+      break;
+  }
+// #endif
+  return p;
 }
