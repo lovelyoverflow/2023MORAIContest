@@ -73,9 +73,12 @@ class LidarReceiver():
                     self.obstacle_state.data = "STRAIGHT_FAR"
                     rospy.loginfo("STRAIGHT_FAR")
                 elif i.center.x < 1.2: #2.6:
-                    if i.center.x >= 0.05:
-                        self.obstacle_state.data = "STRAIGHT_NEAR"
-                        rospy.loginfo("STRAIGHT_NEAR")
+                    if i.center.x >= 0.5:
+                        self.obstacle_state.data = "STRAIGHT_NEAR_F"
+                        rospy.loginfo("STRAIGHT_NEAR_F")
+                    else:
+                        self.obstacle_state.data = "STRAIGHT_NEAR_N"
+                        rospy.loginfo("STRAIGHT_NEAR_N")
                     
             else:
                 if i.center.x >= 0.05:

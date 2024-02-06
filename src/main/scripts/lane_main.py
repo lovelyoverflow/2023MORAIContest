@@ -290,6 +290,16 @@ class LaneFollower:
         posl += offset
 
         self.pos = (posl*2 - line_len)/2
+      
+    def go_only_right(self, offset = 60):
+        posl = self.r_lane
+        posl = int(posl[0][3])
+        x = self.x
+        line_len = 286
+        posl += offset
+
+        self.pos = (posl*2 - line_len)/2
+        if self.pos < x/2: self.pos = x//2
 
     def go_yellow(self):
         lane = np.sum(self.yellow_warped, axis=0)
@@ -395,17 +405,19 @@ class LaneFollower:
             self.speed = 0
             elapsed_time = time.time() - self.start_time
             #앞에 차 없으면 우회전하는 코드 추가
-            if self.obstacle_state == "STRAIGHT_NEAR" and self.seq5_toggle == False:
+            if (self.obstacle_state == "STRAIGHT_NEAR_N" or self.obstacle_state == "STRAIGHT_NEAR_F") and self.seq5_toggle == False:
                 self.seq5_toggle = True
-            if self.obstacle_state != "STRAIGHT_NEAR"  and self.seq5_toggle == True:
+            if (self.obstacle_state == "STRAIGHT_NEAR_N" or self.obstacle_state == "STRAIGHT_NEAR_F")  and self.seq5_toggle == True:
                 self.start_time = time.time()
-                self.speed = 500*3.5
+                self.speed = 500*2
                 self.sequence = 6
             
         elif self.sequence == 6:
             print("seq 6")
             elapsed_time = time.time() - self.start_time
-            x = 3
+            x = 1.7
+            if self.obstacle_state == "STRAIGHT_NEAR_N": self.speed = 0
+            else: self.speed = 500*3.5
             if elapsed_time < 0.7/x:
                 self.directControl = 0.5
             elif elapsed_time < 2/x:
@@ -605,7 +617,7 @@ class LaneFollower:
                     self.directControl = None
                     self.speed = 800
                     self.go_forward()
-            elif self.obstacle_state == "STRAIGHT_NEAR" :
+            elif (self.obstacle_state == "STRAIGHT_NEAR_N" or self.obstacle_state == "STRAIGHT_NEAR_F") :
                 if self.difference >= 0.2 :
                     self.dynamic_flag = True
                     #rospy.loginfo("DYNAMIC OBSTACLE")
@@ -646,7 +658,7 @@ class LaneFollower:
             t2 = rospy.get_time() - self.obstacle_t1
             
             self.go_yellow_obstacle()
-            if isnan(self.pos): self.go_right(offset=0)
+            if isnan(self.pos): self.go_only_right(offset=0)
             if t2 > 1.5 and self.obstacle_state != "RIGHT":
                 self.current_lane = "RIGHT"
                 self.static_sequence = 2.5
@@ -655,7 +667,7 @@ class LaneFollower:
         elif self.static_sequence == 2.5:
             self.directControl = 1
             t2 = rospy.get_time() - self.obstacle_t1
-            if self.obstacle_state == "STRAIGHT_NEAR" and t2 >= 0.6:
+            if (self.obstacle_state == "STRAIGHT_NEAR_N" or self.obstacle_state == "STRAIGHT_NEAR_F") and t2 >= 0.6:
                 self.static_sequence = 0
                 # self.speed = 0
                 # time.sleep(0.2)
@@ -669,8 +681,8 @@ class LaneFollower:
         elif self.static_sequence == 3:
             t2 = rospy.get_time() - self.obstacle_t1
             self.go_yellow_obstacle()
-            if isnan(self.pos): self.go_right(offset=0)
-            if self.obstacle_state == "STRAIGHT_NEAR" and t2 >= 1:
+            if isnan(self.pos): self.go_only_right(offset=0)
+            if (self.obstacle_state == "STRAIGHT_NEAR_N" or self.obstacle_state == "STRAIGHT_NEAR_F") and t2 >= 1:
                 self.static_sequence = 0
             if t2 > 3:
                 self.static_sequence = 0
