@@ -40,11 +40,11 @@ class LidarReceiver():
 
         data_sorted = sorted(_data.circles, key=lambda sort: sort.center.x)
         while len(data_sorted) != 0 and data_sorted[0].center.x < 0:
-            #print("DELETING", data_sorted[0])
+            # print("DELETING", data_sorted[0])
             del data_sorted[0]
         
         while len(data_sorted) != 0 and data_sorted[0].center.y > 2:
-            #print("DELETING", data_sorted[0])
+            # print("DELETING", data_sorted[0])
             del data_sorted[0]
             
 
@@ -53,7 +53,7 @@ class LidarReceiver():
             self.obstacle_state.data = "NONE"
             self.point_cnt += 1
         else:
-            #print("USING", data_sorted[0])
+            # print("USING", data_sorted[0])
             i = data_sorted[0]
 
             #print("y=", i.center.y, " x=", i.center.x)
@@ -62,13 +62,13 @@ class LidarReceiver():
             self.point_cnt += 1
             self.ylist.data = i.center.y
 
-            if i.center.y < -0.25:
+            if i.center.y < -0.18:
                 if i.center.x < 1: #2.6:
                     if i.center.x >= 0.05:
                         self.obstacle_state.data = "RIGHT"
                         rospy.loginfo("RIGHT")
                         
-            elif abs(i.center.y) < 0.25:
+            elif abs(i.center.y) < 0.18:
                 if i.center.x < 2.6 and i.center.x > 1.2:
                     self.obstacle_state.data = "STRAIGHT_FAR"
                     rospy.loginfo("STRAIGHT_FAR")
