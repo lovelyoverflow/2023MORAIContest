@@ -34,77 +34,54 @@ class LidarReceiver():
 
 
     def lidar_callback(self, _data):
-        
-        # ROI: 장애물 감지 영역 설정
-        left_y = 0.17  # 차량 왼쪽 0.2 m
-        right_y = -0.17  # 차량 오른쪽 0.2 m
-        front_x = 1 # 차량 앞 1.6 m
-        back_x = 0   # 차량 뒤 0 m
         WARNING_CNT = 1
-        # print("YYYYYYYYYYYYYYYYY", _data.circles.center.y)
-        
-        # print("XXXXXXXXXXXXXXXXX", _data.circles.center.y)
-        self.point_cnt = 0   # ROI 내 장애물 개수
-        self.dynamic_cnt = 0 # 
+
+        self.point_cnt = 0   # ROI 내 장애물 개수\
+
+        data_sorted = sorted(_data.circles, key=lambda sort: sort.center.x)
+        for enu, i in enumerate(data_sorted):
+            if i.center.x <= 0:
+                del data_sorted[enu]
         
         print(len(_data.circles))
+
         if len(_data.circles) == 0: 
             rospy.loginfo("NONE")
             self.obstacle_state.data = "NONE"
             self.point_cnt += 1
 
-        for i in _data.circles:
-            # ROI 내의 장애물 위치
-            # rospy.loginfo("lidar callback2")
-            # print(i.center.y)
-            print("y=", i.center.y, " x=", i.center.x)
-            if i.center.y < -0.25:
-                if i.center.x < 1: #2.6:
-                   if i.center.x >= 0.05:
-                        self.obstacle_state.data = "RIGHT"
-                        rospy.loginfo("RIGHT")
-                        self.point_cnt += 1
-                        self.ylist.data = i.center.y
-                        
-            elif abs(i.center.y) < 0.25:
-                
-                 if i.center.x < 2.6 and i.center.x > 1.2:
-                    self.obstacle_state.data = "STRAIGHT_FAR"
-                    rospy.loginfo("STRAIGHT_FAR")
-                    self.point_cnt += 1
-                    self.ylist.data = i.center.y
-                 elif i.center.x < 1.2: #2.6:
-                   if i.center.x >= 0.05:
-                        self.obstacle_state.data = "STRAIGHT_NEAR"
-                        rospy.loginfo("STRAIGHT_NEAR")
-                        self.point_cnt += 1
-                        self.ylist.data = i.center.y
-                        
-            elif i.center.x > 0 and i.center.x < 2.6:
+        i = data_sorted[0]
+
+        print("y=", i.center.y, " x=", i.center.x)
+
+        if i.center.y < -0.25:
+            if i.center.x < 1: #2.6:
                 if i.center.x >= 0.05:
-                    self.obstacle_state.data = "LEFT"
-                    rospy.loginfo("LEFT")
+                    self.obstacle_state.data = "RIGHT"
+                    rospy.loginfo("RIGHT")
                     self.point_cnt += 1
                     self.ylist.data = i.center.y
-            # else: 
-            #     rospy.loginfo("NONE")
-            #     self.obstacle_state.data = "NONE"
-            #     self.point_cnt += 1
-
-            # else:
-                # rospy.loginfo("??????????????????????????????????????????//")
-            
-                        
-            # if left_y < i.center.y < right_y and back_x < i.center.x < front_x:
-            #     # rospy.loginfo("lidar callback3")
-            #     self.object_pub.publish(i.center.y)
-            #     rospy.loginfo("lidar XXXXXXXXXXXX")
+                    
+        elif abs(i.center.y) < 0.25:
+            if i.center.x < 2.6 and i.center.x > 1.2:
+                self.obstacle_state.data = "STRAIGHT_FAR"
+                rospy.loginfo("STRAIGHT_FAR")
+                self.point_cnt += 1
+                self.ylist.data = i.center.y
+            elif i.center.x < 1.2: #2.6:
+                if i.center.x >= 0.05:
+                    self.obstacle_state.data = "STRAIGHT_NEAR"
+                    rospy.loginfo("STRAIGHT_NEAR")
+                    self.point_cnt += 1
+                    self.ylist.data = i.center.y
                 
-            # if left_y < i.center.y < right_y and front_x < i.center.x < back_x:
-            #     # rospy.loginfo("lidar callback4")
-            #     self.point_cnt += 1
+        else:
+            if i.center.x >= 0.05:
+                self.obstacle_state.data = "LEFT"
+                rospy.loginfo("LEFT")
+                self.point_cnt += 1
+                self.ylist.data = i.center.y
 
-            # 장애물이 일정 개수 이상 나타나면 WARNING 상태
         if self.point_cnt >= WARNING_CNT:
             # rospy.loginfo("lidar callback warning")
             self.warning_pub.publish("WARNING")

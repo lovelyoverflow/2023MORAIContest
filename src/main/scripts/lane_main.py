@@ -584,7 +584,7 @@ class LaneFollower:
         print("obsticle_sequence =", self.static_sequence)
         print("diff =", self.difference)
         if self.static_sequence == 0:
-            print("in SEQUENCE IsssssssssssF", self.obstacle_state)
+            print("in SEQUENCE IF", self.obstacle_state)
             if self.obstacle_state == "LEFT" or self.obstacle_state == "STRAIGHT_FAR":
                 if self.difference >= 0.2 :
                     self.dynamic_flag = True
