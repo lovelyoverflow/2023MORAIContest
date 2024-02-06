@@ -394,7 +394,7 @@ class LaneFollower:
             print("seq 5")
             self.speed = 0
             #앞에 차 없으면 우회전하는 코드 추가
-            if True:
+            if self.obstacle_state != "STRAIGHT_NEAR":
                 self.start_time = time.time()
                 self.speed = 500
                 self.sequence = 6
@@ -439,7 +439,7 @@ class LaneFollower:
             print("Traffic Light")
             if self.left_traffic:
                 self.start_time = time.time()
-                self.directControl = 0.5
+                self.directControl = 0.45
                 self.speed = 400
                 self.stopline_count = 0
                 self.sequence = 8
@@ -448,7 +448,7 @@ class LaneFollower:
             print("횡단보도 좌회전")
             elapsed_time = time.time() - float(self.start_time)
             if elapsed_time < 1:
-                self.directControl = 0.45
+                self.directControl = 0.4
             else:
                 self.directControl = None
                 self.go_left()
@@ -615,7 +615,7 @@ class LaneFollower:
             else: 
                 #rospy.loginfo("NOT OBSTACLE !!!!!!")
                 self.directControl = None
-                self.speed = 1000
+                self.speed = 1100
                 self.go_forward()
 
         elif self.static_sequence == 1:

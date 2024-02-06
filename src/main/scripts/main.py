@@ -28,8 +28,8 @@ class NavigationClient():
         
         self.waypoint_1 = MoveBaseGoal()
         self.waypoint_1.target_pose.header.frame_id = "map"
-        self.waypoint_1.target_pose.pose.position.x = 18.829602928367105
-        self.waypoint_1.target_pose.pose.position.y = -10.192431496128888
+        self.waypoint_1.target_pose.pose.position.x = 18.314141071314296
+        self.waypoint_1.target_pose.pose.position.y = -10.213097824867216
         self.waypoint_1.target_pose.pose.orientation.w = 0.9999999999
         self.waypoint_1.target_pose.pose.orientation.z = 0.0000001
         
