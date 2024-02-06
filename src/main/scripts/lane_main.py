@@ -342,7 +342,7 @@ class LaneFollower:
             # self.go_forward()
             self.obstacle_decide()
             elapsed_time = time.time() - self.start_time
-            if self.stopline_count >= 4:
+            if True:
                 self.start_time = time.time()
                 self.sequence = 1
                 self.yellowline_count = 0
