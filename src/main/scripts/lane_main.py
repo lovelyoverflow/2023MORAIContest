@@ -58,7 +58,7 @@ class LaneFollower:
         self.trustr = True
         self.stopline_toggle = 4
         self.stopline_count = 0
-        
+        self.seq5_toggle = False
         
         self.yellowline_toggle = 4
         self.yellowline_count = 0
@@ -393,30 +393,34 @@ class LaneFollower:
         elif self.sequence == 5:
             print("seq 5")
             self.speed = 0
+            elapsed_time = time.time() - self.start_time
             #앞에 차 없으면 우회전하는 코드 추가
-            if self.obstacle_state != "STRAIGHT_NEAR":
+            if self.obstacle_state == "STRAIGHT_NEAR" and self.seq5_toggle == False:
+                self.seq5_toggle = True
+            if self.obstacle_state != "STRAIGHT_NEAR"  and self.seq5_toggle == True:
                 self.start_time = time.time()
-                self.speed = 500
+                self.speed = 500*3.5
                 self.sequence = 6
             
         elif self.sequence == 6:
             print("seq 6")
             elapsed_time = time.time() - self.start_time
-            if elapsed_time < 0.7:
+            x = 3
+            if elapsed_time < 0.7/x:
                 self.directControl = 0.5
-            elif elapsed_time < 2:
+            elif elapsed_time < 2/x:
                 self.directControl = 1
-            elif elapsed_time < 2.5:
+            elif elapsed_time < 2.5/x:
                 self.directControl = 0.8
-            elif elapsed_time < 3:
+            # elif elapsed_time < 3:
+            #     self.directControl = 0.3
+            # elif elapsed_time < 3.3:
+            #     self.directControl = 0.3
+            elif elapsed_time < 3.6/x:
                 self.directControl = 0.3
-            elif elapsed_time < 3.3:
-                self.directControl = 0.3
-            elif elapsed_time < 3.6:
-                self.directControl = 0.3
-            elif elapsed_time < 3.7:
+            elif elapsed_time < 3.7/x:
                 self.directControl = 0.35
-            elif elapsed_time < 4.5:
+            elif elapsed_time < 4.5/x:
                 self.directControl = 1
             else:
                 self.directControl = None
@@ -448,7 +452,7 @@ class LaneFollower:
             print("횡단보도 좌회전")
             elapsed_time = time.time() - float(self.start_time)
             if elapsed_time < 1:
-                self.directControl = 0.4
+                self.directControl = 0.3
             else:
                 self.directControl = None
                 self.go_left()
