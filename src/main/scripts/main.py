@@ -25,10 +25,10 @@ class NavigationClient():
         
         self.waypoint_1 = MoveBaseGoal()
         self.waypoint_1.target_pose.header.frame_id = "map"
-        self.waypoint_1.target_pose.pose.position.x = 17.53599319448465
-        self.waypoint_1.target_pose.pose.position.y = -9.930902082927483
-        self.waypoint_1.target_pose.pose.orientation.w = 0.9998693821949046
-        self.waypoint_1.target_pose.pose.orientation.z = 0.016162256933356937
+        self.waypoint_1.target_pose.pose.position.x = 18.42313200791249
+        self.waypoint_1.target_pose.pose.position.y = -9.833394068832433
+        self.waypoint_1.target_pose.pose.orientation.w = 0.9999999999
+        self.waypoint_1.target_pose.pose.orientation.z = 0.0000001
         
         self.goal_list.append(self.waypoint_1)
 
@@ -113,8 +113,8 @@ class NavigationClient():
         self.pub_steer.publish(self.car.steering_msg.data)
         
         # cv2.circle(self.car.out_img, (int(self.car.pos), 550), 5, (255, 255, 255))
-        # cv2.imshow("lane", self.car.yellow_warped)
-        # cv2.waitKey(1)
+        cv2.imshow("lane", self.car.out_img)
+        cv2.waitKey(1)
 
     def stop(self):
         self.client.cancle_all_goals()

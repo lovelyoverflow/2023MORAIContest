@@ -303,11 +303,11 @@ class LaneFollower:
     def go_yellow_obstacle(self):
         lane = np.sum(self.yellow_warped, axis=0)
         if self.current_lane == "RIGHT":
-            lane_pos = 140 #148
+            lane_pos = 128 #148
             #self.current_lane = "LEFT"
             
         elif self.current_lane == "LEFT":
-            lane_pos = 261 #261
+            lane_pos = 281 #261
             #self.current_lane = "RIGHT"
         print(self.current_lane)
         posl = 0
@@ -332,7 +332,7 @@ class LaneFollower:
         if self.sequence == -0.5:
             self.directControl = 0.5
             elapsed_time = time.time() - self.start_time
-            if elapsed_time >= 1:
+            if elapsed_time >= 0.1:
                 self.directControl = None
                 self.sequence = 0
 
@@ -575,7 +575,7 @@ class LaneFollower:
         ##################
         # if not self.is_safe :
         self.y_list_sort = sorted(self.y_list, key=lambda x: x)
-        rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
+        # rospy.loginfo("Y_LIST{}".format(self.y_list_sort))
         while len(self.y_list) > 5:
             del self.y_list[0]
         while len(self.y_list_sort) > 5:
@@ -611,20 +611,27 @@ class LaneFollower:
             else: 
                 rospy.loginfo("NOT OBSTACLE !!!!!!")
                 self.directControl = None
-                self.speed = 800
+                self.speed = 1000
                 self.go_forward()
 
         elif self.static_sequence == 1:
             self.directControl = None
-            self.speed = 400
+            self.speed = 600
             if self.current_lane == "LEFT":
                 self.current_lane = "RIGHT"
 
             elif self.current_lane == "RIGHT":
                 self.current_lane = "LEFT"
             self.obstacle_t1 = rospy.get_time()
-            self.static_sequence = 2
-            # self.midrange -= 100
+            self.static_sequence = 1.5
+            # self.midrange -= 70
+            
+        elif self.static_sequence == 1.5:
+            self.directControl = 0
+            t2 = rospy.get_time() - self.obstacle_t1
+            if t2 > 0.5:
+                self.directControl = None
+                self.static_sequence = 2
             
 
         elif self.static_sequence == 2:
@@ -632,24 +639,33 @@ class LaneFollower:
             
             self.go_yellow_obstacle()
             if isnan(self.pos): self.go_right(offset=0)
-            if t2 > 3:
-                if self.current_lane == "LEFT":
-                    self.current_lane = "RIGHT"
-    
-                elif self.current_lane == "RIGHT":
-                    self.current_lane = "LEFT"
-                self.static_sequence = 3
+            if t2 > 1.5 and self.obstacle_state != "RIGHT":
+                self.current_lane = "RIGHT"
+                self.static_sequence = 2.5
                 self.obstacle_t1 = rospy.get_time()
+                
+        elif self.static_sequence == 2.5:
+            self.directControl = 1
+            t2 = rospy.get_time() - self.obstacle_t1
+            if self.obstacle_state == "STRAIGHT_NEAR" and t2 >= 0.5:
+                self.static_sequence = 0
+                # self.speed = 0
+                # time.sleep(0.2)
+                # self.midrange += 70
+            if t2 > 0.51:
+                self.directControl = None
+                self.current_lane = "RIGHT"
+                self.static_sequence = 3
+                # self.midrange += 70
 
         elif self.static_sequence == 3:
             t2 = rospy.get_time() - self.obstacle_t1
             self.go_yellow_obstacle()
             if isnan(self.pos): self.go_right(offset=0)
-            if self.obstacle_state == "STRAIGHT_NEAR" :
+            if self.obstacle_state == "STRAIGHT_NEAR" and t2 >= 1:
                 self.static_sequence = 0
             if t2 > 3:
                 self.static_sequence = 0
-                # self.midrange += 100
     # # def lane_change
     # ####################### obstalce detector ########################
     # def obstacle_decide(self):
@@ -864,9 +880,8 @@ class LaneFollower:
     #             rospy.loginfo("STATIC OBSTACLE")
     #             self.static_obstacle_drive()
     #         # if the car is driving depending on "right" window
-
-    #     else:
-    #         rospy.loginfo("NOT OBSTACLE !!!!!!")
+# .car.yellow_warped)
+       
     #         self.directControl = None
     #         self.go_forward()
 
