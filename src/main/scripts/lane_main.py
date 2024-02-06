@@ -651,12 +651,12 @@ class LaneFollower:
         elif self.static_sequence == 2.5:
             self.directControl = 1
             t2 = rospy.get_time() - self.obstacle_t1
-            if self.obstacle_state == "STRAIGHT_NEAR" and t2 >= 0.5:
+            if self.obstacle_state == "STRAIGHT_NEAR" and t2 >= 0.6:
                 self.static_sequence = 0
                 # self.speed = 0
                 # time.sleep(0.2)
                 # self.midrange += 70
-            if t2 > 0.51:
+            if t2 > 0.61:
                 self.directControl = None
                 self.current_lane = "RIGHT"
                 self.static_sequence = 3
