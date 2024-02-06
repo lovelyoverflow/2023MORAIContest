@@ -53,14 +53,7 @@ class NavigationClient():
         self.start_time = rospy.Time.now()
         
     def obstacle_pos_callback(self, msg):
-        if msg.data == "LEFT" :
-            self.car.obstacle_state = "LEFT"
-        elif msg.data =="RIGHT" :
-            self.car.obstacle_state = "RIGHT"
-        elif msg.data == "STRAIGHT" :
-            self.car.obstacle_state = "STRAIGHT"
-        else :
-            pass
+        self.car.obstacle_state = msg.data
     
     def _traffic_cb(self, msg):
             if msg.trafficLightStatus == 33:
