@@ -59,6 +59,8 @@ class LaneFollower:
         self.stopline_toggle = 4
         self.stopline_count = 0
         self.seq5_toggle = False
+        self.tmp_time = 0
+        self.temp_elapsed_time = 0
         
         self.yellowline_toggle = 4
         self.yellowline_count = 0
@@ -409,15 +411,21 @@ class LaneFollower:
                 self.seq5_toggle = True
             if (self.obstacle_state == "STRAIGHT_NEAR_N" or self.obstacle_state == "STRAIGHT_NEAR_F")  and self.seq5_toggle == True:
                 self.start_time = time.time()
+                self.tmp_time = time.time()
                 self.speed = 500*1.8
                 self.sequence = 6
             
         elif self.sequence == 6:
             print("seq 6")
-            elapsed_time = time.time() - self.start_time
-            x = 1.6
-            if self.obstacle_state == "STRAIGHT_NEAR_N": self.speed = 0
-            else: self.speed = 500*1.8
+            
+            x = 1.8
+            if self.obstacle_state == "STRAIGHT_NEAR_N":
+                self.speed = 0
+                self.temp_elapsed_time = time.time() - self.tmp_time
+            else:
+                self.speed = 500*1.8
+                else_time = time.time() - self.start_time
+            elapsed_time = else_time - self.temp_elapsed_time
             if elapsed_time < 0.7/x:
                 self.directControl = 0.5
             elif elapsed_time < 2/x:
@@ -504,7 +512,7 @@ class LaneFollower:
                 self.sequence = 11
         
         elif self.sequence == 11:
-            self.speed = 1000
+            self.speed = 1300
             print("seq 11")
             self.go_yellow()
             elapsed_time = time.time() - float(self.start_time)
