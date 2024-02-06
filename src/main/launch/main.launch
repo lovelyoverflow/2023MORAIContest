@@ -15,5 +15,5 @@
     <!-- <node name="lane_main" type="lane_main.py" pkg="main" output="screen"/> -->
     <!-- <node name="pidcal" type="pidcal.py" pkg="main" output="screen"/> -->
 
-    <node name="rviz_nav" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/navigation.rviz" />
+    <!-- <node name="rviz_nav" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/navigation.rviz" /> -->
 </launch>

@@ -409,15 +409,15 @@ class LaneFollower:
                 self.seq5_toggle = True
             if (self.obstacle_state == "STRAIGHT_NEAR_N" or self.obstacle_state == "STRAIGHT_NEAR_F")  and self.seq5_toggle == True:
                 self.start_time = time.time()
-                self.speed = 500*2
+                self.speed = 500*1.8
                 self.sequence = 6
             
         elif self.sequence == 6:
             print("seq 6")
             elapsed_time = time.time() - self.start_time
-            x = 1.7
+            x = 1.6
             if self.obstacle_state == "STRAIGHT_NEAR_N": self.speed = 0
-            else: self.speed = 500*3.5
+            else: self.speed = 500*1.8
             if elapsed_time < 0.7/x:
                 self.directControl = 0.5
             elif elapsed_time < 2/x:
