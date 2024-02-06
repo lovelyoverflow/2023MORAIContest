@@ -370,7 +370,7 @@ class LaneFollower:
             if 8 <= elapsed_time:
                 self.start_time = time.time()
                 # self.directControl
-                self.midrange += 70
+                self.midrange -= 70
                 self.sequence = 3
         
         elif self.sequence == 3:
