@@ -176,7 +176,7 @@ class LaneFollower:
         leftx_current = np.argmax(histogram[:midpoint])
         rightx_current = np.argmax(histogram[midpoint:]) + midpoint
 
-        window_height = np.int(self.x/nwindows)
+        window_height = int(self.x/nwindows)
         nz = lane.nonzero() # nz[0] is vertical(y), nz[1] is horizontal(x)
 
         left_lane_inds = []
@@ -214,7 +214,7 @@ class LaneFollower:
                     l_err[1] = 0
                     foundl = True 
                 else: l_err[1] += 1 
-                leftx_current = np.int(np.mean(nz[1][good_left_inds]))
+                leftx_current = int(np.mean(nz[1][good_left_inds]))
             else: l_err[1] += 1
             if not foundl: l_err[0] += 1
             if len(good_right_inds) > minpix:
@@ -222,7 +222,7 @@ class LaneFollower:
                     r_err[1] = 0
                     foundr = True
                 else: r_err[1] += 1
-                rightx_current = np.int(np.mean(nz[1][good_right_inds]))
+                rightx_current = int(np.mean(nz[1][good_right_inds]))
             else: r_err[1] += 1
             if not foundr: r_err[0] += 1
 
