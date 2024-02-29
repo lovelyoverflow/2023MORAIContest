@@ -2,11 +2,11 @@
 <launch>
 
   <param name="use_sim_time" value="true"/>  
-  <node name="scans_demo" pkg="rosbag" type="play" output="screen" args="--clock --loop $(find obstacle_detector)/resources/output2.bag"/>
+  <node name="scans_demo" pkg="rosbag" type="play" output="screen" args="--clock --loop $(find obstacle_detector)/resources/output3.bag"/>
 
-  <node name="map_to_scanner_base" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 map laser_frame"/>
-  <node name="scanner_base_to_front_scanner" pkg="tf2_ros" type="static_transform_publisher" args="0.23565 -0.0005 0.06795 0 0 0 laser_frame front_scanner"/>
-  <node name="scanner_base_to_rear_scanner" pkg="tf2_ros" type="static_transform_publisher" args="-0.23832 0.00542 0.09888 3.141592 0 0 laser_frame rear_scanner"/>
+  <node name="map_to_scanner_base" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 base_link laser_frame"/>
+  <!-- <node name="scanner_base_to_front_scanner" pkg="tf2_ros" type="static_transform_publisher" args="0.23565 -0.0005 0.06795 0 0 0 laser_frame front_scanner"/> -->
+  <!-- <node name="scanner_base_to_rear_scanner" pkg="tf2_ros" type="static_transform_publisher" args="-0.23832 0.00542 0.09888 3.141592 0 0 laser_frame rear_scanner"/> -->
 
   <node name="nodelet_manager" pkg="nodelet" type="nodelet" args="manager" output="screen">
     <param name="num_worker_threads" value="20"/>
@@ -27,7 +27,7 @@
     <param name="min_y_range"       value="-10.0"/>
     <param name="max_y_range"       value="1000.0"/>
 
-    <param name="fixed_frame_id"    value="map"/>
+    <param name="fixed_frame_id"    value="base_link"/>
     <param name="target_frame_id"   value="laser_frame"/>
   </node>
 
@@ -51,7 +51,7 @@
     <param name="max_circle_radius"    value="0.6"/>
     <param name="radius_enlargement"   value="0.3"/>
 
-    <param name="frame_id"             value="map"/>
+    <param name="frame_id"             value="base_link"/>
   </node>
 
   <node name="obstacle_tracker" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleTracker nodelet_manager">
@@ -65,7 +65,7 @@
     <param name="process_rate_variance"   value="0.1"/>  
     <param name="measurement_variance"    value="1.0"/>  
 
-    <param name="frame_id"                value="map"/>
+    <param name="frame_id"                value="base_link"/>
 
     <remap from="tracked_obstacles" to="obstacles"/>
   </node>
@@ -86,7 +86,7 @@
     <rosparam param="vx_vector">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
     <rosparam param="vy_vector">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam> -->
 
-    <param name="frame_id"         value="map"/>
+    <param name="frame_id"         value="base_link"/>
   </node>
 
   <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find obstacle_detector)/resources/obstacle_detector.rviz"/>

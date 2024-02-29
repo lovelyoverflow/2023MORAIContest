@@ -19,7 +19,7 @@
     <param name="max_y_range"       value="10.0"/>
 
     <param name="fixed_frame_id"   value="map"/>
-    <param name="target_frame_id"   value="robot"/>
+    <param name="target_frame_id"   value="laser_frame"/>
   </node>
 
   <node name="obstacle_extractor" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleExtractor $(arg manager)">

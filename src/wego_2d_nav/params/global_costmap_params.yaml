@@ -6,12 +6,13 @@ global_costmap:
   static_map: true
   resolution: 0.1
   transform_tolerance: 0.5
+  inflation_radius: 0.4
 
   obstacle_layer:
     enabled: true
     obstacle_range: 5.5
     raytrace_range: 6.0
-    inflation_radius: 0.2
+    # inflation_radius: 0.2
     track_unknown_space: true
     combination_method: 1
     observation_sources: laser_scan_sensor

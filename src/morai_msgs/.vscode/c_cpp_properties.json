@@ -1,0 +1,42 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/user/Documents/morai_main/2023MORAIContest/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/racecar/ackermann_cmd_mux/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/amcl/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/base_local_planner/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/carrot_planner/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/clear_costmap_recovery/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/costmap_2d/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/dwa_local_planner/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/global_planner/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/map_server/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/move_base/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/move_slow_and_clear/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/nav_core/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/navfn/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/obstacle_detector/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/pointcloud_to_laserscan/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/robot_localization/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/rotate_recovery/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/teb_local_planner/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/vesc/vesc_ackermann/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/vesc/vesc_driver/include/**",
+        "/home/user/Documents/morai_main/2023MORAIContest/src/navigation/voxel_grid/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

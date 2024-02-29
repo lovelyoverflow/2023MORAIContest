@@ -4,7 +4,7 @@
     <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu"
     args="0.0 0.0 0.12 0.0 0.0 0.0 1.0 base_link imu"/>
     <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_lidar"
-    args="0.11 0.0 0.13 0.0 0.0 0.0 1.0 base_link lidar"/>
+    args="0.11 0.0 0.13 0.0 0.0 0.0 1.0 base_link velodyne"/>
 
     <node pkg="wego" type="lidar_convert" name="lidar_convert"/>
 
@@ -17,6 +17,6 @@
         <node pkg="wego" type="pub_odom.py" name="pub_odom"/>
     </group>
 
-    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/display.rviz" /> -->
+    <!-- <node name="rviz_teleop" pkg="rviz" type="rviz" args="-d $(find wego)/rviz/display.rviz" /> -->
 
 </launch>
